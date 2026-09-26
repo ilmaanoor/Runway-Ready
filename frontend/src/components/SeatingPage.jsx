@@ -84,8 +84,6 @@ export default function SeatingPage({ selectedEvent }) {
   }
 
   const isPhysical = selectedEvent.type === 'Physical';
-
-  // Filter unassigned guests for the left sidebar pool
   const unassignedGuests = guests.filter(g => !assignments.some(a => a.guest_id === g.id));
 
   return (
@@ -100,11 +98,11 @@ export default function SeatingPage({ selectedEvent }) {
         </p>
       </div>
 
-      {/* Warning Overlay Banner */}
+      {/* Rule Engine Warning Overlay Banner */}
       {warnings.length > 0 && (
         <div className="warning-overlay-banner">
-          <strong>⚠️ Rule-Engine Alert:</strong>
-          <ul style={{ marginTop: '4px', paddingLeft: '20px' }}>
+          <strong>[RULE-ENGINE CONFLICT ALERT]</strong>
+          <ul style={{ marginTop: '6px', paddingLeft: '20px' }}>
             {warnings.map((w, idx) => (
               <li key={idx}>[{w.type.toUpperCase()}] {w.message}</li>
             ))}
@@ -114,7 +112,7 @@ export default function SeatingPage({ selectedEvent }) {
 
       {successMessage && !warnings.length && (
         <div className="warning-overlay-banner mismatch" style={{ borderLeftColor: '#10b981' }}>
-          ✓ {successMessage}
+          SUCCESS: {successMessage}
         </div>
       )}
 
@@ -231,7 +229,7 @@ export default function SeatingPage({ selectedEvent }) {
           </div>
         </div>
       ) : (
-        /* VIRTUAL EVENT VIEW (3 COLUMNS: VIP, PRESS, GENERAL) */
+        /* VIRTUAL EVENT VIEW (3 COLUMNS) */
         <div className="virtual-three-columns">
           {sections.map(sec => {
             const secAssignments = assignments.filter(a => a.section_id === sec.id);
@@ -241,7 +239,6 @@ export default function SeatingPage({ selectedEvent }) {
                 <h3 className="virtual-column-title">{sec.name}</h3>
                 <span className="sidebar-title">Capacity: {secAssignments.length} / {sec.capacity}</span>
                 
-                {/* Progress Meter Bar */}
                 <div className="capacity-meter-bar">
                   <div className="capacity-meter-fill" style={{ width: `${Math.min(capacityPct, 100)}%` }}></div>
                 </div>
@@ -260,7 +257,7 @@ export default function SeatingPage({ selectedEvent }) {
                           className="btn-delete-minimal" 
                           onClick={() => handleUnassign(a.guest_id)}
                         >
-                          ✕
+                          Remove
                         </button>
                       </div>
                     ))
