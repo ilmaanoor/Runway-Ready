@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import fashionCollageImg from '../assets/fashion_week_collage.png';
+import illustrationImg from '../assets/couture_illustration.png';
+import typographyImg from '../assets/fashion_typography.jpg';
 
 export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
   const [events, setEvents] = useState([]);
@@ -50,12 +53,39 @@ export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
       <div className="page-header-editorial">
         <span className="section-kicker">SHOW DIRECTORY</span>
         <h1 className="page-title">Dashboard</h1>
-        <p className="page-description">Oversee fashion show events and virtual access tiers</p>
+        <p className="page-description">Oversee fashion show events, seating rosters, and virtual access tiers</p>
       </div>
 
       {error && <div className="warning-overlay-banner capacity">{error}</div>}
 
-      <div className="dashboard-layout">
+      {/* Editorial Fashion Gallery Row */}
+      <div className="dashboard-gallery-row">
+        <div className="editorial-frame-card">
+          <img src={fashionCollageImg} alt="Fashion Week Trends" className="editorial-thumbnail" />
+          <div className="editorial-card-info">
+            <span className="sidebar-title">FASHION WEEK 2026</span>
+            <p>Modern runway trends & seating rosters</p>
+          </div>
+        </div>
+
+        <div className="editorial-frame-card">
+          <img src={illustrationImg} alt="Couture Sketches" className="editorial-thumbnail" />
+          <div className="editorial-card-info">
+            <span className="sidebar-title">HAUTE COUTURE ILLUST</span>
+            <p>Rival brand clash matrix rules</p>
+          </div>
+        </div>
+
+        <div className="editorial-frame-card">
+          <img src={typographyImg} alt="Typography & Design" className="editorial-thumbnail" />
+          <div className="editorial-card-info">
+            <span className="sidebar-title">COUTURE TYPOGRAPHY</span>
+            <p>High-fashion editorial layout design</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-layout" style={{ marginTop: '28px' }}>
         {/* Create Event */}
         <div className="card-editorial">
           <div className="card-header-couture">

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import parisFashionWeekImg from '../assets/paris_fashion_week.png';
+import fashionIllustrationImg from '../assets/couture_illustration.png';
 
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('admin@runway.com');
@@ -32,7 +34,16 @@ export default function Login({ onLoginSuccess }) {
   };
 
   return (
-    <div className="login-wrapper">
+    <div className="login-wrapper-split">
+      {/* Left Editorial Visual Card */}
+      <div className="login-visual-panel">
+        <div className="image-frame-editorial">
+          <img src={parisFashionWeekImg} alt="Paris Fashion Week 2026" className="login-editorial-img" />
+          <div className="image-caption-tag">PARIS FASHION WEEK 2026 • OFFICIAL SEATING PORTAL</div>
+        </div>
+      </div>
+
+      {/* Right Form Card */}
       <div className="login-card-editorial">
         <div className="login-header">
           <span className="login-badge-couture">FASHION SHOW MANAGEMENT</span>
