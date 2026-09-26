@@ -1,10 +1,7 @@
-// RUNWAY READY — Guest List Component (Page 3)
-// Concepts Used: useState (Form & Table State), useEffect (Fetch Data), fetch() API, Array .filter() & .map()
-
 import React, { useState, useEffect } from 'react';
+import modestCoutureImg from '../assets/modest_couture_brand.png';
 
 export default function GuestList({ selectedEvent }) {
-  // 1. STATE VARIABLES
   const [guests, setGuests] = useState([]);
   const [name, setName] = useState('');
   const [tier, setTier] = useState('VIP');
@@ -14,7 +11,6 @@ export default function GuestList({ selectedEvent }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 2. FETCH DATA FUNCTION (GET Request)
   const fetchGuests = () => {
     if (!selectedEvent) return;
     setLoading(true);
@@ -30,14 +26,12 @@ export default function GuestList({ selectedEvent }) {
       });
   };
 
-  // 3. useEffect HOOK (Runs when selectedEvent changes)
   useEffect(() => {
     fetchGuests();
   }, [selectedEvent]);
 
-  // 4. ADD GUEST HANDLER (POST Request)
   const handleAddGuest = (e) => {
-    e.preventDefault(); // Prevents page reload on form submit
+    e.preventDefault();
     if (!name || !selectedEvent) return;
 
     fetch('http://127.0.0.1:5000/api/guests', {
@@ -52,17 +46,14 @@ export default function GuestList({ selectedEvent }) {
     })
       .then(res => res.json())
       .then(() => {
-        // Clear input form fields
         setName('');
         setBrand('');
         setTier('VIP');
-        // Refresh guest list from backend
         fetchGuests();
       })
       .catch(err => setError('Could not add guest.'));
   };
 
-  // 5. DELETE GUEST HANDLER (DELETE Request)
   const handleDeleteGuest = (id) => {
     fetch(`http://127.0.0.1:5000/api/guests/${id}`, {
       method: 'DELETE'
@@ -72,7 +63,6 @@ export default function GuestList({ selectedEvent }) {
       .catch(err => setError('Could not delete guest.'));
   };
 
-  // 6. CHECK-IN TOGGLE HANDLER (PUT Request)
   const handleToggleCheckin = (guest) => {
     const newStatus = guest.checked_in ? 0 : 1;
     fetch(`http://127.0.0.1:5000/api/guests/${guest.id}/checkin`, {
@@ -95,7 +85,6 @@ export default function GuestList({ selectedEvent }) {
     );
   }
 
-  // 7. ARRAY FILTERING (Unit 2 Array Methods: .filter())
   const filteredGuests = guests.filter(g => {
     const matchesSearch = g.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (g.brand && g.brand.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -114,58 +103,69 @@ export default function GuestList({ selectedEvent }) {
       {error && <div className="warning-overlay-banner capacity">{error}</div>}
 
       <div className="dashboard-layout">
-        {/* Controlled Form to Add Guest */}
-        <div className="card-editorial">
-          <div className="card-header-couture">
-            <h3>Add New Guest</h3>
-            <p>Enter guest credentials and tier</p>
+        {/* Left Column: Form + Vertical Framed Fashion Image Card */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card-editorial">
+            <div className="card-header-couture">
+              <h3>Add New Guest</h3>
+              <p>Enter guest credentials and tier</p>
+            </div>
+
+            <form onSubmit={handleAddGuest} className="form-stack">
+              <div className="form-group-editorial">
+                <label>Full Name</label>
+                <input 
+                  type="text" 
+                  className="input-editorial" 
+                  placeholder="e.g. Anna Wintour" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group-editorial">
+                <label>Access Tier</label>
+                <select 
+                  className="input-editorial" 
+                  value={tier}
+                  onChange={(e) => setTier(e.target.value)}
+                >
+                  <option value="VIP">VIP</option>
+                  <option value="Press">Press</option>
+                  <option value="Buyer">Buyer</option>
+                  <option value="General">General</option>
+                </select>
+              </div>
+
+              <div className="form-group-editorial">
+                <label>Brand / House</label>
+                <input 
+                  type="text" 
+                  className="input-editorial" 
+                  placeholder="e.g. Chanel, Vogue, Dior" 
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                />
+              </div>
+
+              <button type="submit" className="btn-couture btn-primary-couture">
+                + Add to Roster
+              </button>
+            </form>
           </div>
 
-          <form onSubmit={handleAddGuest} className="form-stack">
-            <div className="form-group-editorial">
-              <label>Full Name</label>
-              <input 
-                type="text" 
-                className="input-editorial" 
-                placeholder="e.g. Anna Wintour" 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+          {/* Small Vertical Editorial Image Card */}
+          <div className="editorial-frame-card">
+            <img src={modestCoutureImg} alt="Couture Brand Identity" className="sidebar-editorial-img vertical" />
+            <div className="editorial-card-info">
+              <span className="sidebar-title">COUTURE BRAND REGISTRY</span>
+              <p>Verified fashion house guest list</p>
             </div>
-
-            <div className="form-group-editorial">
-              <label>Access Tier</label>
-              <select 
-                className="input-editorial" 
-                value={tier}
-                onChange={(e) => setTier(e.target.value)}
-              >
-                <option value="VIP">VIP</option>
-                <option value="Press">Press</option>
-                <option value="Buyer">Buyer</option>
-                <option value="General">General</option>
-              </select>
-            </div>
-
-            <div className="form-group-editorial">
-              <label>Brand / House</label>
-              <input 
-                type="text" 
-                className="input-editorial" 
-                placeholder="e.g. Chanel, Vogue, Dior" 
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-              />
-            </div>
-
-            <button type="submit" className="btn-couture btn-primary-couture">
-              + Add to Roster
-            </button>
-          </form>
+          </div>
         </div>
 
-        {/* Directory Table */}
+        {/* Right Side Table */}
         <div className="card-editorial">
           <div className="card-header-couture" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -197,7 +197,6 @@ export default function GuestList({ selectedEvent }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Unit 2 & 3 Array Mapping to JSX */}
                   {filteredGuests.map(g => (
                     <tr key={g.id} className={g.checked_in ? 'checked-in-row' : ''}>
                       <td>

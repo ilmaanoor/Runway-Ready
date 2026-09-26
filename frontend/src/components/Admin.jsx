@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import maleModelImg from '../assets/male_model_editorial.png';
 
 export default function Admin({ selectedEvent }) {
   const [users, setUsers] = useState([]);
@@ -191,21 +192,32 @@ export default function Admin({ selectedEvent }) {
           2. Rival Brand Clash Rules
         </h2>
         <div className="dashboard-layout">
-          <div className="card-editorial">
-            <div className="card-header-couture">
-              <h3>Define Rival Brand Pair</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="card-editorial">
+              <div className="card-header-couture">
+                <h3>Define Rival Brand Pair</h3>
+              </div>
+              <form onSubmit={handleAddRival} className="form-stack">
+                <div className="form-group-editorial">
+                  <label>Brand A</label>
+                  <input type="text" className="input-editorial" placeholder="e.g. Chanel" value={brandA} onChange={e => setBrandA(e.target.value)} required />
+                </div>
+                <div className="form-group-editorial">
+                  <label>Brand B (Rival)</label>
+                  <input type="text" className="input-editorial" placeholder="e.g. Dior" value={brandB} onChange={e => setBrandB(e.target.value)} required />
+                </div>
+                <button type="submit" className="btn-couture btn-primary-couture">+ Add Pair</button>
+              </form>
             </div>
-            <form onSubmit={handleAddRival} className="form-stack">
-              <div className="form-group-editorial">
-                <label>Brand A</label>
-                <input type="text" className="input-editorial" placeholder="e.g. Chanel" value={brandA} onChange={e => setBrandA(e.target.value)} required />
+
+            {/* Small Editorial Image Card */}
+            <div className="editorial-frame-card">
+              <img src={maleModelImg} alt="Brand Identity & Male Editorial" className="sidebar-editorial-img" style={{ height: '160px' }} />
+              <div className="editorial-card-info">
+                <span className="sidebar-title">BRAND CONFLICT MATRIX</span>
+                <p>Prevent rival brand clashes in adjacent seats</p>
               </div>
-              <div className="form-group-editorial">
-                <label>Brand B (Rival)</label>
-                <input type="text" className="input-editorial" placeholder="e.g. Dior" value={brandB} onChange={e => setBrandB(e.target.value)} required />
-              </div>
-              <button type="submit" className="btn-couture btn-primary-couture">+ Add Pair</button>
-            </form>
+            </div>
           </div>
 
           <div className="card-editorial">

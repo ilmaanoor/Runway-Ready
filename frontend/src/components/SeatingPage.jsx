@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import runwayShowBanner from '../assets/runway_show_banner.png';
+import editorPortraitImg from '../assets/fashion_editor_portrait.png';
 
 export default function SeatingPage({ selectedEvent }) {
   const [guests, setGuests] = useState([]);
@@ -177,10 +179,25 @@ export default function SeatingPage({ selectedEvent }) {
                 </button>
               </div>
             )}
+
+            {/* Small Framed Portrait Card in Left Sidebar */}
+            <div className="editorial-frame-card" style={{ marginTop: '24px' }}>
+              <img src={editorPortraitImg} alt="New York Fashion Week Editor" className="sidebar-editorial-img" />
+              <div className="editorial-card-info" style={{ marginTop: '6px' }}>
+                <span className="sidebar-title" style={{ fontSize: '0.7rem' }}>FRONT ROW REGISTRY</span>
+                <p style={{ fontSize: '0.75rem' }}>VIP Guest Protocol & Seating</p>
+              </div>
+            </div>
           </div>
 
           {/* Main Canvas (75% Width): Runway Layout */}
           <div className="runway-main-canvas">
+            {/* Wide Runway Show Banner Format */}
+            <div className="runway-banner-container">
+              <img src={runwayShowBanner} alt="Runway Catwalk Show" className="runway-banner-img" />
+              <div className="runway-banner-overlay-text">RUNWAY CATWALK SHOWCASE</div>
+            </div>
+
             {/* Center Black Runway Rectangle */}
             <div className="runway-stage-center">
               R U N W A Y

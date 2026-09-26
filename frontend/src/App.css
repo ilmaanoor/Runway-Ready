@@ -293,6 +293,49 @@ h1, h2, h3, h4, .brand-title, .page-title, .section-title {
   display: block;
 }
 
+.sidebar-editorial-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid var(--border-light);
+}
+
+.sidebar-editorial-img.vertical {
+  height: 220px;
+  object-fit: cover;
+}
+
+/* RUNWAY SHOW BANNER FORMAT */
+.runway-banner-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.runway-banner-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.9);
+}
+
+.runway-banner-overlay-text {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
 .editorial-card-info p {
   font-size: 0.82rem;
   color: var(--text-gray);
@@ -345,7 +388,7 @@ h1, h2, h3, h4, .brand-title, .page-title, .section-title {
   font-weight: 700;
   letter-spacing: 1.5px;
   color: var(--text-gray);
-  text-align: center;
+  text-text-align: center;
   margin-top: 12px;
   text-transform: uppercase;
 }
