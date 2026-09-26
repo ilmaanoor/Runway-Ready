@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import parisFashionWeekImg from '../assets/paris_fashion_week.png';
-import fashionIllustrationImg from '../assets/couture_illustration.png';
+import portraitCoutureImg from '../assets/couture_illustration.png';
 
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('admin@runway.com');
@@ -35,11 +34,11 @@ export default function Login({ onLoginSuccess }) {
 
   return (
     <div className="login-wrapper-split">
-      {/* Left Editorial Visual Card */}
+      {/* Left Vertical Portrait Image Frame */}
       <div className="login-visual-panel">
-        <div className="image-frame-editorial">
-          <img src={parisFashionWeekImg} alt="Paris Fashion Week 2026" className="login-editorial-img" />
-          <div className="image-caption-tag">PARIS FASHION WEEK 2026 • OFFICIAL SEATING PORTAL</div>
+        <div className="image-frame-editorial portrait">
+          <img src={portraitCoutureImg} alt="Paris Haute Couture Portrait" className="login-editorial-img portrait" />
+          <div className="image-caption-tag">PARIS HAUTE COUTURE • OFFICIAL SEATING PORTAL</div>
         </div>
       </div>
 
