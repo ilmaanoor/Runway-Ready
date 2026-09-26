@@ -1,0 +1,150 @@
+import React, { useState, useEffect } from 'react';
+
+export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
+  const [events, setEvents] = useState([]);
+  const [name, setName] = useState('');
+  const [date, setDate] = useState('');
+  const [type, setType] = useState('Physical');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchEvents = () => {
+    setLoading(true);
+    fetch('http://127.0.0.1:5000/api/events')
+      .then(res => res.json())
+      .then(data => {
+        setEvents(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError('Failed to fetch events from backend.');
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const handleCreateEvent = (e) => {
+    e.preventDefault();
+    if (!name || !date) return;
+
+    fetch('http://127.0.0.1:5000/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, date, type })
+    })
+      .then(res => res.json())
+      .then(() => {
+        setName('');
+        setDate('');
+        setType('Physical');
+        fetchEvents();
+      })
+      .catch(err => setError('Could not create event.'));
+  };
+
+  return (
+    <div className="page-wrapper">
+      <div className="page-header-editorial">
+        <span className="section-kicker">SHOW DIRECTORY</span>
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-description">Oversee fashion show events and virtual access tiers</p>
+      </div>
+
+      {error && <div className="warning-overlay-banner capacity">{error}</div>}
+
+      <div className="dashboard-layout">
+        {/* Create Event */}
+        <div className="card-editorial">
+          <div className="card-header-couture">
+            <h3>Create New Show Event</h3>
+            <p>Set up physical runway seating or virtual stream tiers</p>
+          </div>
+          
+          <form onSubmit={handleCreateEvent} className="form-stack">
+            <div className="form-group-editorial">
+              <label>Event Name</label>
+              <input 
+                type="text" 
+                className="input-editorial" 
+                placeholder="e.g. Autumn Runway Gala 2027" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group-editorial">
+              <label>Event Date</label>
+              <input 
+                type="date" 
+                className="input-editorial" 
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group-editorial">
+              <label>Event Format</label>
+              <select 
+                className="input-editorial" 
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+              >
+                <option value="Physical">Physical (Runway Grid)</option>
+                <option value="Virtual">Virtual (Access Tiers)</option>
+              </select>
+            </div>
+
+            <button type="submit" className="btn-couture btn-primary-couture">
+              + Create Event
+            </button>
+          </form>
+        </div>
+
+        {/* List Events */}
+        <div className="card-editorial">
+          <div className="card-header-couture">
+            <h3>Active Events ({events.length})</h3>
+            <p>Select an event to configure seating or access tiers</p>
+          </div>
+
+          {loading ? (
+            <p>Loading events...</p>
+          ) : events.length === 0 ? (
+            <p style={{ color: '#7d7d7d' }}>No events scheduled.</p>
+          ) : (
+            <div className="events-grid-couture">
+              {events.map(ev => {
+                const isSelected = activeSelectedEvent && activeSelectedEvent.id === ev.id;
+                return (
+                  <div key={ev.id} className={`event-card-couture ${isSelected ? 'selected-event' : ''}`}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <span className={`tier-pill-minimal ${ev.type === 'Physical' ? 'vip' : 'general'}`}>
+                        {ev.type.toUpperCase()}
+                      </span>
+                      <span style={{ fontSize: '0.8rem', color: '#7d7d7d' }}>{ev.date}</span>
+                    </div>
+
+                    <h4 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.2rem', marginBottom: '16px' }}>{ev.name}</h4>
+
+                    <button 
+                      className={`btn-couture ${isSelected ? 'btn-primary-couture' : 'btn-secondary-couture'}`}
+                      style={{ width: '100%', fontSize: '0.75rem' }}
+                      onClick={() => onSelectEvent(ev)}
+                    >
+                      {isSelected ? 'Currently Selected' : 'Select Event'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
