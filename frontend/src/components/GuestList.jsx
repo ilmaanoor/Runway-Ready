@@ -1,6 +1,10 @@
+// RUNWAY READY — Guest List Component (Page 3)
+// Concepts Used: useState (Form & Table State), useEffect (Fetch Data), fetch() API, Array .filter() & .map()
+
 import React, { useState, useEffect } from 'react';
 
 export default function GuestList({ selectedEvent }) {
+  // 1. STATE VARIABLES
   const [guests, setGuests] = useState([]);
   const [name, setName] = useState('');
   const [tier, setTier] = useState('VIP');
@@ -10,6 +14,7 @@ export default function GuestList({ selectedEvent }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // 2. FETCH DATA FUNCTION (GET Request)
   const fetchGuests = () => {
     if (!selectedEvent) return;
     setLoading(true);
@@ -25,12 +30,14 @@ export default function GuestList({ selectedEvent }) {
       });
   };
 
+  // 3. useEffect HOOK (Runs when selectedEvent changes)
   useEffect(() => {
     fetchGuests();
   }, [selectedEvent]);
 
+  // 4. ADD GUEST HANDLER (POST Request)
   const handleAddGuest = (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevents page reload on form submit
     if (!name || !selectedEvent) return;
 
     fetch('http://127.0.0.1:5000/api/guests', {
@@ -45,14 +52,17 @@ export default function GuestList({ selectedEvent }) {
     })
       .then(res => res.json())
       .then(() => {
+        // Clear input form fields
         setName('');
         setBrand('');
         setTier('VIP');
+        // Refresh guest list from backend
         fetchGuests();
       })
       .catch(err => setError('Could not add guest.'));
   };
 
+  // 5. DELETE GUEST HANDLER (DELETE Request)
   const handleDeleteGuest = (id) => {
     fetch(`http://127.0.0.1:5000/api/guests/${id}`, {
       method: 'DELETE'
@@ -62,6 +72,7 @@ export default function GuestList({ selectedEvent }) {
       .catch(err => setError('Could not delete guest.'));
   };
 
+  // 6. CHECK-IN TOGGLE HANDLER (PUT Request)
   const handleToggleCheckin = (guest) => {
     const newStatus = guest.checked_in ? 0 : 1;
     fetch(`http://127.0.0.1:5000/api/guests/${guest.id}/checkin`, {
@@ -84,6 +95,7 @@ export default function GuestList({ selectedEvent }) {
     );
   }
 
+  // 7. ARRAY FILTERING (Unit 2 Array Methods: .filter())
   const filteredGuests = guests.filter(g => {
     const matchesSearch = g.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (g.brand && g.brand.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -102,7 +114,7 @@ export default function GuestList({ selectedEvent }) {
       {error && <div className="warning-overlay-banner capacity">{error}</div>}
 
       <div className="dashboard-layout">
-        {/* Left Side Add Form */}
+        {/* Controlled Form to Add Guest */}
         <div className="card-editorial">
           <div className="card-header-couture">
             <h3>Add New Guest</h3>
@@ -153,7 +165,7 @@ export default function GuestList({ selectedEvent }) {
           </form>
         </div>
 
-        {/* Right Side Table */}
+        {/* Directory Table */}
         <div className="card-editorial">
           <div className="card-header-couture" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -185,6 +197,7 @@ export default function GuestList({ selectedEvent }) {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Unit 2 & 3 Array Mapping to JSX */}
                   {filteredGuests.map(g => (
                     <tr key={g.id} className={g.checked_in ? 'checked-in-row' : ''}>
                       <td>
@@ -192,13 +205,11 @@ export default function GuestList({ selectedEvent }) {
                         <span className="guest-brand-uppercase">{g.brand ? g.brand.toUpperCase() : 'INDEPENDENT'}</span>
                       </td>
                       <td>
-                        {/* Minimal pill badge with no background fill */}
                         <span className={`tier-pill-minimal ${g.tier.toLowerCase()}`}>
                           {g.tier}
                         </span>
                       </td>
                       <td>
-                        {/* Minimal Toggle Switch */}
                         <div 
                           className="toggle-switch-container" 
                           onClick={() => handleToggleCheckin(g)}

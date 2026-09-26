@@ -1,3 +1,7 @@
+// RUNWAY READY — Main Application Root Component
+// Built for Stella Maris College BCA - Functional Web Development Syllabus (Unit 3 & Unit 4)
+// Concepts Used: Functional Components, useState, Props, and Conditional Rendering (No Router)
+
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
@@ -9,28 +13,40 @@ import EventReport from './components/EventReport';
 import './App.css';
 
 export default function App() {
+  // 1. STATE MANAGEMENT (useState Hook)
+  // Stores the currently logged-in user details (null if logged out)
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Stores which page to render ('login', 'dashboard', 'guests', 'seating', 'admin', 'report')
   const [activePage, setActivePage] = useState('login');
+
+  // Stores the currently selected show event object
   const [selectedEvent, setSelectedEvent] = useState(null);
 
+  // 2. EVENT HANDLER FUNCTIONS
+  // Called when user successfully logs in
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     setActivePage('dashboard');
   };
 
+  // Called when user clicks "Sign Out"
   const handleLogout = () => {
     setCurrentUser(null);
     setSelectedEvent(null);
     setActivePage('login');
   };
 
+  // Called when user selects an event from Dashboard
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
-    setActivePage('seating'); // Default to seating page when an event is selected
+    setActivePage('seating'); // Navigate to Seating Page for the selected event
   };
 
+  // 3. JSX RENDER (Conditional rendering switches pages without extra router libraries)
   return (
     <div className="app-root">
+      {/* Top Navigation Bar Component */}
       <Navbar 
         currentUser={currentUser} 
         activePage={activePage} 
@@ -40,10 +56,13 @@ export default function App() {
         onLogout={handleLogout}
       />
 
+      {/* Main Content Area */}
       <main className="main-content">
         {!currentUser ? (
+          /* Render Login Page if user is not logged in */
           <Login onLoginSuccess={handleLoginSuccess} />
         ) : (
+          /* Render Active Page based on state */
           <>
             {activePage === 'dashboard' && (
               <Dashboard 
