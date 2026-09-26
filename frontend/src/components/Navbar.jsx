@@ -22,39 +22,16 @@ export default function Navbar({ currentUser, activePage, setActivePage, selecte
   return (
     <header className="main-navbar">
       <div className="navbar-container">
-        {/* Brand Title */}
+        {/* Left Section: Brand Logo */}
         <div className="navbar-brand" onClick={() => setActivePage('dashboard')}>
           <div className="brand-logo">RR</div>
           <div className="brand-text">
             <span className="brand-title">RUNWAY READY</span>
-            <span className="brand-subtitle">SEATING & ACCESS SYSTEM</span>
+            <span className="brand-subtitle">SEATING SYSTEM</span>
           </div>
         </div>
 
-        {/* Global Event Selector */}
-        <div className="navbar-event-selector">
-          <label className="event-select-label">ACTIVE EVENT:</label>
-          <select 
-            className="event-select-dropdown"
-            value={selectedEvent ? selectedEvent.id : ''}
-            onChange={(e) => {
-              const ev = eventsList.find(item => item.id === parseInt(e.target.value));
-              if (ev) setSelectedEvent(ev);
-            }}
-          >
-            {eventsList.length === 0 ? (
-              <option value="">No Events Available</option>
-            ) : (
-              eventsList.map(ev => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.name} ({ev.type.toUpperCase()}) — {ev.date}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-
-        {/* Navigation Tabs without emojis */}
+        {/* Center Section: Navigation Tabs */}
         <nav className="navbar-links">
           <button 
             className={`nav-tab ${activePage === 'dashboard' ? 'active' : ''}`}
@@ -94,15 +71,39 @@ export default function Navbar({ currentUser, activePage, setActivePage, selecte
           )}
         </nav>
 
-        {/* User Profile */}
-        <div className="navbar-user">
-          <div className="user-info">
-            <span className="user-name">{currentUser.name}</span>
-            <span className="user-role-badge">{currentUser.role.replace('_', ' ').toUpperCase()}</span>
+        {/* Right Section: Active Event Selector & User Sign Out Group */}
+        <div className="navbar-right-group">
+          <div className="navbar-event-selector">
+            <label className="event-select-label">SHOW:</label>
+            <select 
+              className="event-select-dropdown"
+              value={selectedEvent ? selectedEvent.id : ''}
+              onChange={(e) => {
+                const ev = eventsList.find(item => item.id === parseInt(e.target.value));
+                if (ev) setSelectedEvent(ev);
+              }}
+            >
+              {eventsList.length === 0 ? (
+                <option value="">No Events</option>
+              ) : (
+                eventsList.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} ({ev.type.toUpperCase()}) — {ev.date}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
-          <button className="btn-logout" onClick={onLogout}>
-            Sign Out
-          </button>
+
+          <div className="navbar-user">
+            <div className="user-info">
+              <span className="user-name">{currentUser.name}</span>
+              <span className="user-role-badge">{currentUser.role.replace('_', ' ').toUpperCase()}</span>
+            </div>
+            <button className="btn-logout" onClick={onLogout}>
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     </header>
