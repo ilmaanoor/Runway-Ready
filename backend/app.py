@@ -32,9 +32,22 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             date TEXT NOT NULL,
-            type TEXT NOT NULL
+            type TEXT NOT NULL,
+            location TEXT DEFAULT '',
+            capacity INTEGER DEFAULT 100,
+            description TEXT DEFAULT ''
         )
     ''')
+
+    # Ensure new columns exist for existing databases
+    cursor.execute("PRAGMA table_info(events)")
+    existing_cols = [col['name'] for col in cursor.fetchall()]
+    if 'location' not in existing_cols:
+        cursor.execute("ALTER TABLE events ADD COLUMN location TEXT DEFAULT ''")
+    if 'capacity' not in existing_cols:
+        cursor.execute("ALTER TABLE events ADD COLUMN capacity INTEGER DEFAULT 100")
+    if 'description' not in existing_cols:
+        cursor.execute("ALTER TABLE events ADD COLUMN description TEXT DEFAULT ''")
 
     # Create guests table
     cursor.execute('''
@@ -229,13 +242,19 @@ def add_event():
     name = data.get('name', '').strip()
     date = data.get('date', '').strip()
     type_ = data.get('type', 'Physical').strip()
+    location = data.get('location', '').strip()
+    capacity = int(data.get('capacity', 100) or 100)
+    description = data.get('description', '').strip()
 
     if not name or not date:
         return jsonify({'error': 'Event name and date are required'}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO events (name, date, type) VALUES (?, ?, ?)', (name, date, type_))
+    cursor.execute(
+        'INSERT INTO events (name, date, type, location, capacity, description) VALUES (?, ?, ?, ?, ?, ?)', 
+        (name, date, type_, location, capacity, description)
+    )
     event_id = cursor.lastrowid
 
     # Create default sections based on event type

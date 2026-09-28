@@ -8,6 +8,9 @@ export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [type, setType] = useState('Physical');
+  const [location, setLocation] = useState('');
+  const [capacity, setCapacity] = useState('100');
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -36,13 +39,16 @@ export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
     fetch('http://127.0.0.1:5000/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, date, type })
+      body: JSON.stringify({ name, date, type, location, capacity, description })
     })
       .then(res => res.json())
       .then(() => {
         setName('');
         setDate('');
         setType('Physical');
+        setLocation('');
+        setCapacity('100');
+        setDescription('');
         fetchEvents();
       })
       .catch(err => setError('Could not create event.'));
@@ -129,6 +135,40 @@ export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
               </select>
             </div>
 
+            <div className="form-group-editorial">
+              <label>Venue Location / Stream Link</label>
+              <input 
+                type="text" 
+                className="input-editorial" 
+                placeholder="e.g. Grand Palais, Paris / twitch.tv/fashion" 
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group-editorial">
+              <label>Max Guest Capacity</label>
+              <input 
+                type="number" 
+                className="input-editorial" 
+                placeholder="100" 
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group-editorial">
+              <label>Event Description / Theme</label>
+              <textarea 
+                className="input-editorial" 
+                placeholder="e.g. Spring Haute Couture Runway Showcase" 
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
             <button type="submit" className="btn-couture btn-primary-couture">
               + Create Event
             </button>
@@ -152,18 +192,36 @@ export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
                 const isSelected = activeSelectedEvent && activeSelectedEvent.id === ev.id;
                 return (
                   <div key={ev.id} className={`event-card-couture ${isSelected ? 'selected-event' : ''}`}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <span className={`tier-pill-minimal ${ev.type === 'Physical' ? 'vip' : 'general'}`}>
                         {ev.type.toUpperCase()}
                       </span>
                       <span style={{ fontSize: '0.8rem', color: '#7d7d7d' }}>{ev.date}</span>
                     </div>
 
-                    <h4 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.2rem', marginBottom: '16px' }}>{ev.name}</h4>
+                    <h4 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.2rem', marginBottom: '8px' }}>{ev.name}</h4>
+
+                    {ev.location && (
+                      <p style={{ fontSize: '0.8rem', color: '#555', marginBottom: '4px' }}>
+                        📍 <strong>Location:</strong> {ev.location}
+                      </p>
+                    )}
+
+                    {ev.capacity && (
+                      <p style={{ fontSize: '0.8rem', color: '#555', marginBottom: '4px' }}>
+                        👥 <strong>Capacity:</strong> {ev.capacity} Guests
+                      </p>
+                    )}
+
+                    {ev.description && (
+                      <p style={{ fontSize: '0.8rem', color: '#777', marginBottom: '12px', fontStyle: 'italic' }}>
+                        "{ev.description}"
+                      </p>
+                    )}
 
                     <button 
                       className={`btn-couture ${isSelected ? 'btn-primary-couture' : 'btn-secondary-couture'}`}
-                      style={{ width: '100%', fontSize: '0.75rem' }}
+                      style={{ width: '100%', fontSize: '0.75rem', marginTop: '8px' }}
                       onClick={() => onSelectEvent(ev)}
                     >
                       {isSelected ? 'Currently Selected' : 'Select Event'}
