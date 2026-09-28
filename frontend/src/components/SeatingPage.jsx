@@ -219,11 +219,19 @@ export default function SeatingPage({ selectedEvent }) {
                         <div 
                           key={pos} 
                           className={`seat-square-block ${assigned ? 'occupied' : ''} ${assigned && hasClash ? 'has-clash' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          title={assigned ? 'Click to unassign seat' : 'Click to assign guest to this seat'}
                           onClick={() => {
                             if (assigned) {
                               handleUnassign(assigned.guest_id);
-                            } else if (selectedGuestId) {
-                              handleAssign(selectedGuestId, sec.id, pos);
+                            } else {
+                              const guestToAssign = selectedGuestId || (unassignedGuests[0] ? unassignedGuests[0].id : null);
+                              if (guestToAssign) {
+                                handleAssign(guestToAssign, sec.id, pos);
+                                setSelectedGuestId(null);
+                              } else {
+                                alert('No unassigned guests available. Please add guests in the Guest List tab first!');
+                              }
                             }
                           }}
                         >
@@ -234,7 +242,7 @@ export default function SeatingPage({ selectedEvent }) {
                               <div className="seat-guest-brand-text">{assigned.guest_brand || 'No Brand'}</div>
                             </div>
                           ) : (
-                            <span style={{ color: '#7d7d7d', fontSize: '0.72rem' }}>+ Vacant</span>
+                            <span style={{ color: '#000', fontWeight: 'bold', fontSize: '0.75rem' }}>+ Vacant</span>
                           )}
                         </div>
                       );
