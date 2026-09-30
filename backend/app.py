@@ -457,12 +457,14 @@ def assign_seat():
     event_id = guest['event_id']
     warnings = []
 
-    # RULE 1: Tier Mismatch
+    # RULE 1: Strict Tier Enforcement (Block Mismatched Tier Assignments)
     if guest['tier'] != section['allowed_tier']:
-        warn_msg = f"Tier Mismatch: Guest '{guest['name']}' ({guest['tier']}) assigned to section '{section['name']}' ({section['allowed_tier']})."
-        warnings.append({'type': 'tier_mismatch', 'message': warn_msg})
+        err_msg = f"STRICT TIER ENFORCEMENT: Guest '{guest['name']}' holds a {guest['tier']} ticket and can ONLY be assigned to a {guest['tier']} section. (Section '{section['name']}' requires {section['allowed_tier']} tier)."
         cursor.execute('INSERT INTO warning_log (event_id, guest_id, type, message) VALUES (?, ?, ?, ?)',
-                       (event_id, guest_id, 'tier_mismatch', warn_msg))
+                       (event_id, guest_id, 'tier_mismatch', err_msg))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': False, 'error': err_msg}), 400
 
     # RULE 2: Section Capacity Overflow
     current_count_row = cursor.execute('SELECT COUNT(*) as cnt FROM seat_assignments WHERE section_id = ? AND guest_id != ?',
@@ -471,9 +473,11 @@ def assign_seat():
 
     if current_count >= section['capacity']:
         warn_msg = f"Capacity Overflow: Section '{section['name']}' is full (Capacity: {section['capacity']})."
-        warnings.append({'type': 'capacity_full', 'message': warn_msg})
         cursor.execute('INSERT INTO warning_log (event_id, guest_id, type, message) VALUES (?, ?, ?, ?)',
                        (event_id, guest_id, 'capacity_full', warn_msg))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': False, 'error': warn_msg}), 400
 
     # RULE 3: Brand Clash Check
     # Look for guests sitting at position - 1 and position + 1 in the same section
@@ -501,7 +505,7 @@ def assign_seat():
                     is_rival = True
                     break
             if is_rival:
-                warn_msg = f"Brand Clash: '{guest['name']}' ({guest['brand']}) is seated next to rival brand guest '{adj['name']}' ({adj['brand']}) at position {adj['position']}."
+                warn_msg = f"⚡ RIVAL BRAND CLASH: '{guest['name']}' ({guest['brand']}) and '{adj['name']}' ({adj['brand']}) are rival brands and cannot be seated together! (Seat {position} and Seat {adj['position']})."
                 warnings.append({'type': 'brand_clash', 'message': warn_msg})
                 cursor.execute('INSERT INTO warning_log (event_id, guest_id, type, message) VALUES (?, ?, ?, ?)',
                                (event_id, guest_id, 'brand_clash', warn_msg))

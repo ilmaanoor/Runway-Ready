@@ -11,6 +11,7 @@ export default function SeatingPage({ selectedEvent }) {
   const [selectedPosition, setSelectedPosition] = useState(1);
   const [warnings, setWarnings] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
   const loadData = () => {
@@ -43,6 +44,7 @@ export default function SeatingPage({ selectedEvent }) {
 
     setWarnings([]);
     setSuccessMessage('');
+    setErrorMessage('');
 
     fetch('http://127.0.0.1:5000/api/assign_seat', {
       method: 'POST',
@@ -56,14 +58,20 @@ export default function SeatingPage({ selectedEvent }) {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          setSuccessMessage(data.message);
+          setSuccessMessage(data.message || 'Guest assigned successfully.');
           if (data.warnings && data.warnings.length > 0) {
             setWarnings(data.warnings);
           }
           loadData();
+        } else if (data.error) {
+          // Show the specific error message from backend (tier mismatch, capacity, etc.)
+          setErrorMessage(data.error);
         }
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        setErrorMessage('Network error: Could not connect to backend.');
+        console.error(err);
+      });
   };
 
   const handleUnassign = (guestId) => {
@@ -100,21 +108,28 @@ export default function SeatingPage({ selectedEvent }) {
         </p>
       </div>
 
-      {/* Rule Engine Warning Overlay Banner */}
+      {/* Strict Error Banner (Tier Mismatch / Capacity Full) */}
+      {errorMessage && (
+        <div className="seating-error-banner">
+          BLOCKED: {errorMessage}
+        </div>
+      )}
+
+      {/* Rival Brand Clash Warning Banner — shows exact names */}
       {warnings.length > 0 && (
-        <div className="warning-overlay-banner">
-          <strong>[RULE-ENGINE CONFLICT ALERT]</strong>
+        <div className="seating-rival-banner">
+          <strong>RIVAL BRAND SEATING CONFLICT DETECTED:</strong>
           <ul style={{ marginTop: '6px', paddingLeft: '20px' }}>
             {warnings.map((w, idx) => (
-              <li key={idx}>[{w.type.toUpperCase()}] {w.message}</li>
+              <li key={idx} style={{ marginTop: '4px' }}>{w.message}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {successMessage && !warnings.length && (
-        <div className="warning-overlay-banner mismatch" style={{ borderLeftColor: '#10b981' }}>
-          SUCCESS: {successMessage}
+      {successMessage && !warnings.length && !errorMessage && (
+        <div style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981', color: '#065f46', padding: '12px 16px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: '600', borderRadius: '0 4px 4px 0' }}>
+          ✓ {successMessage}
         </div>
       )}
 
@@ -132,7 +147,7 @@ export default function SeatingPage({ selectedEvent }) {
                   <div 
                     key={g.id} 
                     className={`unassigned-guest-item ${selectedGuestId === g.id ? 'selected' : ''}`}
-                    onClick={() => setSelectedGuestId(g.id)}
+                    onClick={() => { setSelectedGuestId(g.id); setSelectedSectionId(''); setErrorMessage(''); setWarnings([]); }}
                   >
                     <div className="guest-name-bold">{g.name}</div>
                     <div className="guest-brand-uppercase">
@@ -143,42 +158,52 @@ export default function SeatingPage({ selectedEvent }) {
               )}
             </div>
 
-            {selectedGuestId && (
-              <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eaeaea' }}>
-                <span className="sidebar-title">Assign Selected Guest</span>
-                <div className="form-group-editorial" style={{ marginTop: '8px' }}>
-                  <label>Section</label>
-                  <select 
-                    className="input-editorial"
-                    value={selectedSectionId}
-                    onChange={e => setSelectedSectionId(e.target.value)}
+            {selectedGuestId && (() => {
+              const selectedGuest = guests.find(g => g.id === selectedGuestId);
+              // Only show sections matching the guest's tier
+              const allowedSections = sections.filter(s => s.allowed_tier === (selectedGuest ? selectedGuest.tier : ''));
+              return (
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eaeaea' }}>
+                  <span className="sidebar-title">Assign Selected Guest</span>
+                  {selectedGuest && (
+                    <p style={{ fontSize: '0.78rem', color: '#555', marginTop: '6px', marginBottom: '4px' }}>
+                      Only <strong>{selectedGuest.tier}</strong> sections are shown for this guest.
+                    </p>
+                  )}
+                  <div className="form-group-editorial" style={{ marginTop: '8px' }}>
+                    <label>Section ({selectedGuest ? selectedGuest.tier : ''} only)</label>
+                    <select 
+                      className="input-editorial"
+                      value={selectedSectionId}
+                      onChange={e => setSelectedSectionId(e.target.value)}
+                    >
+                      <option value="">-- Choose Section --</option>
+                      {allowedSections.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group-editorial">
+                    <label>Seat #</label>
+                    <input 
+                      type="number" 
+                      className="input-editorial" 
+                      value={selectedPosition} 
+                      onChange={e => setSelectedPosition(e.target.value)}
+                      min="1"
+                      max="20"
+                    />
+                  </div>
+                  <button 
+                    className="btn-couture btn-primary-couture" 
+                    style={{ width: '100%' }}
+                    onClick={() => handleAssign(selectedGuestId, selectedSectionId, selectedPosition)}
                   >
-                    <option value="">-- Choose Section --</option>
-                    {sections.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.allowed_tier})</option>
-                    ))}
-                  </select>
+                    Assign Seat
+                  </button>
                 </div>
-                <div className="form-group-editorial">
-                  <label>Seat #</label>
-                  <input 
-                    type="number" 
-                    className="input-editorial" 
-                    value={selectedPosition} 
-                    onChange={e => setSelectedPosition(e.target.value)}
-                    min="1"
-                    max="20"
-                  />
-                </div>
-                <button 
-                  className="btn-couture btn-primary-couture" 
-                  style={{ width: '100%' }}
-                  onClick={() => handleAssign(selectedGuestId, selectedSectionId, selectedPosition)}
-                >
-                  Assign Seat
-                </button>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Small Framed Portrait Card in Left Sidebar */}
             <div className="editorial-frame-card" style={{ marginTop: '24px' }}>

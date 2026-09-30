@@ -209,15 +209,12 @@ export default function GuestList({ selectedEvent }) {
                         </span>
                       </td>
                       <td>
-                        <div 
-                          className="toggle-switch-container" 
+                        <button 
+                          className={g.checked_in ? 'btn-checkin-green' : 'btn-checkin-pending'}
                           onClick={() => handleToggleCheckin(g)}
                         >
-                          <div className={`toggle-switch ${g.checked_in ? 'checked' : ''}`}>
-                            <div className="toggle-slider"></div>
-                          </div>
-                          <span className="toggle-label">{g.checked_in ? 'Arrived' : 'Pending'}</span>
-                        </div>
+                          {g.checked_in ? '✓ Checked In' : 'Pending Check-In'}
+                        </button>
                       </td>
                       <td>
                         <button 
