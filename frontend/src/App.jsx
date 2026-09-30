@@ -27,7 +27,13 @@ export default function App() {
   // Called when user successfully logs in
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
-    setActivePage('dashboard');
+    if (user.role === 'pr_team') {
+      setActivePage('guests'); // PR team lands directly on their Guest Roster
+    } else if (user.role === 'venue_team') {
+      setActivePage('seating'); // Venue team lands directly on Seating Canvas
+    } else {
+      setActivePage('dashboard'); // Admin lands on Event Dashboard
+    }
   };
 
   // Called when user clicks "Sign Out"
@@ -40,7 +46,11 @@ export default function App() {
   // Called when user selects an event from Dashboard
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
-    setActivePage('seating'); // Navigate to Seating Page for the selected event
+    if (currentUser && currentUser.role === 'pr_team') {
+      setActivePage('guests'); // PR goes to Guest List
+    } else {
+      setActivePage('seating'); // Venue and Admin go to Seating Page
+    }
   };
 
   // 3. JSX RENDER (Conditional rendering switches pages without extra router libraries)
@@ -62,24 +72,25 @@ export default function App() {
           /* Render Login Page if user is not logged in */
           <Login onLoginSuccess={handleLoginSuccess} />
         ) : (
-          /* Render Active Page based on state */
+          /* Render Active Page with Strict Role Guards */
           <>
             {activePage === 'dashboard' && (
               <Dashboard 
+                currentUser={currentUser}
                 onSelectEvent={handleSelectEvent} 
                 activeSelectedEvent={selectedEvent} 
               />
             )}
-            {activePage === 'guests' && (
+            {activePage === 'guests' && (currentUser.role === 'admin' || currentUser.role === 'pr_team') && (
               <GuestList selectedEvent={selectedEvent} />
             )}
-            {activePage === 'seating' && (
+            {activePage === 'seating' && (currentUser.role === 'admin' || currentUser.role === 'venue_team') && (
               <SeatingPage selectedEvent={selectedEvent} />
             )}
-            {activePage === 'admin' && (
+            {activePage === 'admin' && currentUser.role === 'admin' && (
               <Admin selectedEvent={selectedEvent} />
             )}
-            {activePage === 'report' && (
+            {activePage === 'report' && currentUser.role === 'admin' && (
               <EventReport selectedEvent={selectedEvent} />
             )}
           </>

@@ -31,7 +31,7 @@ export default function Navbar({ currentUser, activePage, setActivePage, selecte
           </div>
         </div>
 
-        {/* Center Section: Navigation Tabs */}
+        {/* Center Section: Strict Role-Based Navigation Tabs */}
         <nav className="navbar-links">
           <button 
             className={`nav-tab ${activePage === 'dashboard' ? 'active' : ''}`}
@@ -40,26 +40,32 @@ export default function Navbar({ currentUser, activePage, setActivePage, selecte
             Dashboard
           </button>
           
-          <button 
-            className={`nav-tab ${activePage === 'guests' ? 'active' : ''}`}
-            onClick={() => setActivePage('guests')}
-          >
-            Guest List
-          </button>
+          {(currentUser.role === 'admin' || currentUser.role === 'pr_team') && (
+            <button 
+              className={`nav-tab ${activePage === 'guests' ? 'active' : ''}`}
+              onClick={() => setActivePage('guests')}
+            >
+              Guest List
+            </button>
+          )}
           
-          <button 
-            className={`nav-tab ${activePage === 'seating' ? 'active' : ''}`}
-            onClick={() => setActivePage('seating')}
-          >
-            Seating Page
-          </button>
+          {(currentUser.role === 'admin' || currentUser.role === 'venue_team') && (
+            <button 
+              className={`nav-tab ${activePage === 'seating' ? 'active' : ''}`}
+              onClick={() => setActivePage('seating')}
+            >
+              Seating Page
+            </button>
+          )}
           
-          <button 
-            className={`nav-tab ${activePage === 'report' ? 'active' : ''}`}
-            onClick={() => setActivePage('report')}
-          >
-            Event Report
-          </button>
+          {currentUser.role === 'admin' && (
+            <button 
+              className={`nav-tab ${activePage === 'report' ? 'active' : ''}`}
+              onClick={() => setActivePage('report')}
+            >
+              Event Report
+            </button>
+          )}
 
           {currentUser.role === 'admin' && (
             <button 

@@ -3,7 +3,7 @@ import fashionCollageImg from '../assets/fashion_week_collage.png';
 import illustrationImg from '../assets/couture_illustration.png';
 import typographyImg from '../assets/fashion_typography.jpg';
 
-export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
+export default function Dashboard({ currentUser, onSelectEvent, activeSelectedEvent }) {
   const [events, setEvents] = useState([]);
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
@@ -92,88 +92,130 @@ export default function Dashboard({ onSelectEvent, activeSelectedEvent }) {
       </div>
 
       <div className="dashboard-layout" style={{ marginTop: '28px' }}>
-        {/* Create Event */}
-        <div className="card-editorial">
-          <div className="card-header-couture">
-            <h3>Create New Show Event</h3>
-            <p>Set up physical runway seating or virtual stream tiers</p>
+        {/* Left Card: Create Event for Admin / Role Workstation Card for Staff */}
+        {currentUser && currentUser.role === 'admin' ? (
+          <div className="card-editorial">
+            <div className="card-header-couture">
+              <h3>Create New Show Event</h3>
+              <p>Set up physical runway seating or virtual stream tiers</p>
+            </div>
+            
+            <form onSubmit={handleCreateEvent} className="form-stack">
+              <div className="form-group-editorial">
+                <label>Event Name</label>
+                <input 
+                  type="text" 
+                  className="input-editorial" 
+                  placeholder="e.g. Autumn Runway Gala 2027" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group-editorial">
+                <label>Event Date</label>
+                <input 
+                  type="date" 
+                  className="input-editorial" 
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group-editorial">
+                <label>Event Format</label>
+                <select 
+                  className="input-editorial" 
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                >
+                  <option value="Physical">Physical (Runway Grid)</option>
+                  <option value="Virtual">Virtual (Access Tiers)</option>
+                </select>
+              </div>
+
+              <div className="form-group-editorial">
+                <label>Venue Location / Stream Link</label>
+                <input 
+                  type="text" 
+                  className="input-editorial" 
+                  placeholder="e.g. Grand Palais, Paris / twitch.tv/fashion" 
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group-editorial">
+                <label>Max Guest Capacity</label>
+                <input 
+                  type="number" 
+                  className="input-editorial" 
+                  placeholder="100" 
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group-editorial">
+                <label>Event Description / Theme</label>
+                <textarea 
+                  className="input-editorial" 
+                  placeholder="e.g. Spring Haute Couture Runway Showcase" 
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <button type="submit" className="btn-couture btn-primary-couture">
+                + Create Event
+              </button>
+            </form>
           </div>
-          
-          <form onSubmit={handleCreateEvent} className="form-stack">
-            <div className="form-group-editorial">
-              <label>Event Name</label>
-              <input 
-                type="text" 
-                className="input-editorial" 
-                placeholder="e.g. Autumn Runway Gala 2027" 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+        ) : currentUser && currentUser.role === 'pr_team' ? (
+          <div className="card-editorial">
+            <div className="card-header-couture">
+              <span className="tier-pill-minimal vip" style={{ marginBottom: '8px', display: 'inline-block' }}>PR TEAM WORKSPACE</span>
+              <h3>Guest Roster Operations</h3>
+              <p>Welcome, {currentUser.name}! You have active access to the Guest Invitation & Live Check-In system.</p>
             </div>
-
-            <div className="form-group-editorial">
-              <label>Event Date</label>
-              <input 
-                type="date" 
-                className="input-editorial" 
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
+            
+            <div style={{ marginTop: '16px', lineHeight: '1.6', fontSize: '0.88rem', color: '#444' }}>
+              <p><strong>Your Assigned Responsibilities:</strong></p>
+              <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
+                <li>Register new VIP, Press, Buyer, and General attendees.</li>
+                <li>Verify brand affiliations for runway guests.</li>
+                <li>Perform live gate check-ins as attendees arrive at the venue.</li>
+              </ul>
+              <div style={{ marginTop: '20px', padding: '12px', background: '#f9f9fb', borderLeft: '3px solid #000' }}>
+                👉 Select any active event on the right to start managing its guest list.
+              </div>
             </div>
-
-            <div className="form-group-editorial">
-              <label>Event Format</label>
-              <select 
-                className="input-editorial" 
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-              >
-                <option value="Physical">Physical (Runway Grid)</option>
-                <option value="Virtual">Virtual (Access Tiers)</option>
-              </select>
+          </div>
+        ) : (
+          <div className="card-editorial">
+            <div className="card-header-couture">
+              <span className="tier-pill-minimal general" style={{ marginBottom: '8px', display: 'inline-block' }}>VENUE LOGISTICS WORKSPACE</span>
+              <h3>Runway Floor Coordination</h3>
+              <p>Welcome, {currentUser ? currentUser.name : 'Venue Staff'}! You have active access to the Runway Catwalk Seating Canvas.</p>
             </div>
-
-            <div className="form-group-editorial">
-              <label>Venue Location / Stream Link</label>
-              <input 
-                type="text" 
-                className="input-editorial" 
-                placeholder="e.g. Grand Palais, Paris / twitch.tv/fashion" 
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
+            
+            <div style={{ marginTop: '16px', lineHeight: '1.6', fontSize: '0.88rem', color: '#444' }}>
+              <p><strong>Your Assigned Responsibilities:</strong></p>
+              <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
+                <li>Assign attendees to Front Row VIP, Press, and Buyer seats.</li>
+                <li>Monitor automated Rule Engine warnings (Tier Mismatch & Rival Brand Clashes).</li>
+                <li>Manage physical section capacity limits.</li>
+              </ul>
+              <div style={{ marginTop: '20px', padding: '12px', background: '#f9f9fb', borderLeft: '3px solid #000' }}>
+                👉 Select any active event on the right to open its physical runway seating grid.
+              </div>
             </div>
-
-            <div className="form-group-editorial">
-              <label>Max Guest Capacity</label>
-              <input 
-                type="number" 
-                className="input-editorial" 
-                placeholder="100" 
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group-editorial">
-              <label>Event Description / Theme</label>
-              <textarea 
-                className="input-editorial" 
-                placeholder="e.g. Spring Haute Couture Runway Showcase" 
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-                style={{ resize: 'vertical' }}
-              />
-            </div>
-
-            <button type="submit" className="btn-couture btn-primary-couture">
-              + Create Event
-            </button>
-          </form>
-        </div>
+          </div>
+        )}
 
         {/* List Events */}
         <div className="card-editorial">
