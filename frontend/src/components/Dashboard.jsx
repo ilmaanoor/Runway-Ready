@@ -80,7 +80,7 @@ export default function Dashboard({ currentUser, events, onAddEvent, onSelectEve
       </div>
 
       <div className="dashboard-layout" style={{ marginTop: '28px' }}>
-        {/* Left Card: Create Event Form for Admin / Workstation Card for Staff */}
+        {/* Left Card: Create Event Form for Admin / Workstation Card for Coordinator */}
         {currentUser && currentUser.role === 'admin' ? (
           <div className="card-editorial">
             <div className="card-header-couture">
@@ -163,49 +163,30 @@ export default function Dashboard({ currentUser, events, onAddEvent, onSelectEve
               </button>
             </form>
           </div>
-        ) : currentUser && currentUser.role === 'pr_team' ? (
-          <div className="card-editorial">
-            <div className="card-header-couture">
-              <span className="tier-pill-minimal vip" style={{ marginBottom: '8px', display: 'inline-block' }}>PR TEAM WORKSPACE</span>
-              <h3>Guest Roster Operations</h3>
-              <p>Welcome, {currentUser.name}! You have active access to the Guest Invitation & Live Check-In system.</p>
-            </div>
-            
-            <div style={{ marginTop: '16px', lineHeight: '1.6', fontSize: '0.88rem', color: '#444' }}>
-              <p><strong>Your Assigned Responsibilities:</strong></p>
-              <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-                <li>Register new VIP, Press, Buyer, and General attendees.</li>
-                <li>Verify brand affiliations for runway guests.</li>
-                <li>Perform live gate check-ins as attendees arrive at the venue.</li>
-              </ul>
-              <div style={{ marginTop: '20px', padding: '12px', background: '#f9f9fb', borderLeft: '3px solid #000' }}>
-                👉 Select any active event on the right to start managing its guest list.
-              </div>
-            </div>
-          </div>
         ) : (
           <div className="card-editorial">
             <div className="card-header-couture">
-              <span className="tier-pill-minimal general" style={{ marginBottom: '8px', display: 'inline-block' }}>VENUE LOGISTICS WORKSPACE</span>
-              <h3>Runway Floor Coordination</h3>
-              <p>Welcome, {currentUser ? currentUser.name : 'Venue Staff'}! You have active access to the Runway Catwalk Seating Canvas.</p>
+              <span className="tier-pill-minimal vip" style={{ marginBottom: '8px', display: 'inline-block' }}>COORDINATOR WORKSPACE</span>
+              <h3>Show Operations & Logistics</h3>
+              <p>Welcome, {currentUser ? currentUser.name : 'Coordinator'}! You have active access to Guest Management & Runway Seating.</p>
             </div>
             
             <div style={{ marginTop: '16px', lineHeight: '1.6', fontSize: '0.88rem', color: '#444' }}>
-              <p><strong>Your Assigned Responsibilities:</strong></p>
+              <p><strong>Your Operational Responsibilities:</strong></p>
               <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-                <li>Assign attendees to Front Row VIP, Press, and Buyer seats.</li>
-                <li>Monitor automated Rule Engine warnings (Tier Mismatch & Rival Brand Clashes).</li>
-                <li>Manage physical section capacity limits.</li>
+                <li>Register new VIP, Press, Buyer, and General attendees.</li>
+                <li>Perform live gate check-ins as guests arrive at the venue.</li>
+                <li>Assign seats on the physical runway catwalk canvas.</li>
+                <li>Monitor automated rule-engine conflict warnings.</li>
               </ul>
               <div style={{ marginTop: '20px', padding: '12px', background: '#f9f9fb', borderLeft: '3px solid #000' }}>
-                👉 Select any active event on the right to open its physical runway seating grid.
+                👉 Select any active event on the right to manage its guest list and seating arrangement.
               </div>
             </div>
           </div>
         )}
 
-        {/* Right Card: List Events (Read Operation using Array .map) */}
+        {/* Right Card: List Events */}
         <div className="card-editorial">
           <div className="card-header-couture">
             <h3>Active Events ({events.length})</h3>

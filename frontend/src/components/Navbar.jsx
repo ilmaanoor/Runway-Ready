@@ -1,4 +1,4 @@
-// Navbar.jsx — Pure React Navigation & Event Switcher
+// Navbar.jsx — Pure React Navigation & Event Switcher (2-Tier Roles)
 import React from 'react';
 
 export default function Navbar({ currentUser, activePage, setActivePage, eventsList, selectedEvent, setSelectedEvent, onLogout }) {
@@ -16,7 +16,7 @@ export default function Navbar({ currentUser, activePage, setActivePage, eventsL
           </div>
         </div>
 
-        {/* Center Section: Strict Role-Based Navigation Tabs */}
+        {/* Center Section: Navigation Tabs */}
         <nav className="navbar-links">
           <button 
             className={`nav-tab ${activePage === 'dashboard' ? 'active' : ''}`}
@@ -25,23 +25,19 @@ export default function Navbar({ currentUser, activePage, setActivePage, eventsL
             Dashboard
           </button>
           
-          {(currentUser.role === 'admin' || currentUser.role === 'pr_team') && (
-            <button 
-              className={`nav-tab ${activePage === 'guests' ? 'active' : ''}`}
-              onClick={() => setActivePage('guests')}
-            >
-              Guest List
-            </button>
-          )}
+          <button 
+            className={`nav-tab ${activePage === 'guests' ? 'active' : ''}`}
+            onClick={() => setActivePage('guests')}
+          >
+            Guest List
+          </button>
           
-          {(currentUser.role === 'admin' || currentUser.role === 'venue_team') && (
-            <button 
-              className={`nav-tab ${activePage === 'seating' ? 'active' : ''}`}
-              onClick={() => setActivePage('seating')}
-            >
-              Seating Page
-            </button>
-          )}
+          <button 
+            className={`nav-tab ${activePage === 'seating' ? 'active' : ''}`}
+            onClick={() => setActivePage('seating')}
+          >
+            Seating Page
+          </button>
           
           {currentUser.role === 'admin' && (
             <button 

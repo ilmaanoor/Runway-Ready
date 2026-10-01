@@ -6,7 +6,7 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
-  const [userRole, setUserRole] = useState('pr_team');
+  const [userRole, setUserRole] = useState('coordinator');
 
   const [brandA, setBrandA] = useState('');
   const [brandB, setBrandB] = useState('');
@@ -125,8 +125,7 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
                 value={userRole}
                 onChange={e => setUserRole(e.target.value)}
               >
-                <option value="pr_team">PR Team (Guest List & Gate Check-In)</option>
-                <option value="venue_team">Venue Team (Catwalk Seating Floor)</option>
+                <option value="coordinator">Event Coordinator (Guest List & Seating Floor)</option>
                 <option value="admin">Admin (Full System Access)</option>
               </select>
             </div>

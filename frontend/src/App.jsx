@@ -1,6 +1,6 @@
 // RUNWAY READY — Main Application Root Component
 // Pure React Application built for Stella Maris College BCA Coursework
-// Concepts Used: Functional Components, React Hooks (useState), Props, Form Handling, and Array CRUD
+// 2-Tier Architecture: Admin (Supervisor) & Event Coordinator (Staff)
 
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
@@ -12,13 +12,10 @@ import Admin from './components/Admin';
 import EventReport from './components/EventReport';
 import './App.css';
 
-// Initial Mock Data Arrays (Pure JavaScript Objects - No JSON files or APIs needed)
+// Initial Mock Data Arrays (Pure JavaScript Objects - No JSON or APIs needed)
 const INITIAL_USERS = [
   { id: 1, name: 'Admin User', email: 'admin@runway.com', password: 'admin123', role: 'admin' },
-  { id: 2, name: 'PR Coordinator', email: 'pr@runway.com', password: 'pr123', role: 'pr_team' },
-  { id: 3, name: 'Venue Manager', email: 'venue@runway.com', password: 'venue123', role: 'venue_team' },
-  { id: 4, name: 'Sophia Chen', email: 'sophia@runway.com', password: 'pr123', role: 'pr_team' },
-  { id: 5, name: 'Marcus Vance', email: 'marcus@runway.com', password: 'venue123', role: 'venue_team' }
+  { id: 2, name: 'Event Coordinator', email: 'coordinator@runway.com', password: 'staff123', role: 'coordinator' }
 ];
 
 const INITIAL_EVENTS = [
@@ -105,10 +102,8 @@ export default function App() {
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (user) {
       setCurrentUser(user);
-      if (user.role === 'pr_team') {
-        setActivePage('guests'); // PR lands directly on Guest List
-      } else if (user.role === 'venue_team') {
-        setActivePage('seating'); // Venue lands directly on Seating
+      if (user.role === 'coordinator') {
+        setActivePage('guests'); // Coordinator lands directly on Guest Operations
       } else {
         setActivePage('dashboard'); // Admin lands on Dashboard
       }
@@ -148,7 +143,7 @@ export default function App() {
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
-    if (currentUser && currentUser.role === 'pr_team') {
+    if (currentUser && currentUser.role === 'coordinator') {
       setActivePage('guests');
     } else {
       setActivePage('seating');
@@ -171,7 +166,6 @@ export default function App() {
 
   const handleDeleteGuest = (guestId) => {
     setGuests(guests.filter(g => g.id !== guestId));
-    // Also unassign from seat if assigned
     setSeatAssignments(seatAssignments.filter(s => s.guestId !== guestId));
   };
 
@@ -308,7 +302,7 @@ export default function App() {
               />
             )}
 
-            {activePage === 'guests' && (currentUser.role === 'admin' || currentUser.role === 'pr_team') && (
+            {activePage === 'guests' && (
               <GuestList 
                 selectedEvent={selectedEvent}
                 guests={guests.filter(g => g.eventId === selectedEvent.id)}
@@ -318,7 +312,7 @@ export default function App() {
               />
             )}
 
-            {activePage === 'seating' && (currentUser.role === 'admin' || currentUser.role === 'venue_team') && (
+            {activePage === 'seating' && (
               <SeatingPage 
                 selectedEvent={selectedEvent}
                 guests={guests.filter(g => g.eventId === selectedEvent.id)}
