@@ -162,14 +162,8 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
             {/* Small Portrait Card in Sidebar */}
             <div className="editorial-frame-card" style={{ marginTop: '24px' }}>
               <img src={editorPortraitImg} alt="Fashion Editor Portrait" className="sidebar-editorial-img" />
-              <div className="editorial-card-info" style={{ marginTop: '6px' }}>
-                <span className="sidebar-title" style={{ fontSize: '0.7rem' }}>FRONT ROW REGISTRY</span>
-                <p style={{ fontSize: '0.75rem' }}>VIP Guest Protocol & Seating</p>
-              </div>
             </div>
           </div>
-
-          {/* Main Runway Catwalk Canvas */}
           <div className="runway-main-canvas">
             {/* Wide Banner */}
             <div className="runway-banner-container">
@@ -187,8 +181,9 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
               const secAssignments = assignments.filter(a => a.sectionId === sec.id);
               return (
                 <div key={sec.id} className="seat-row-block">
+                  {/* Show section name only (it already contains the tier) — seats filled / total */}
                   <h4 className="section-block-title">
-                    Section: {sec.name} ({sec.allowed_tier}) — Capacity: {secAssignments.length} / {sec.capacity}
+                    {sec.name} — Seats: {secAssignments.length} / {sec.capacity}
                   </h4>
                   <div className="seat-grid-parallel">
                     {Array.from({ length: sec.capacity }, (_, i) => i + 1).map(pos => {

@@ -56,26 +56,14 @@ export default function Dashboard({ currentUser, events, onAddEvent, onSelectEve
       <div className="dashboard-gallery-row">
         <div className="editorial-frame-card">
           <img src={fashionCollageImg} alt="Fashion Week Trends" className="editorial-thumbnail" />
-          <div className="editorial-card-info">
-            <span className="sidebar-title">FASHION WEEK 2026</span>
-            <p>Modern runway trends & seating rosters</p>
-          </div>
         </div>
 
         <div className="editorial-frame-card">
           <img src={illustrationImg} alt="Couture Sketches" className="editorial-thumbnail" />
-          <div className="editorial-card-info">
-            <span className="sidebar-title">HAUTE COUTURE ILLUST</span>
-            <p>Rival brand clash matrix rules</p>
-          </div>
         </div>
 
         <div className="editorial-frame-card">
           <img src={typographyImg} alt="Typography & Design" className="editorial-thumbnail" />
-          <div className="editorial-card-info">
-            <span className="sidebar-title">COUTURE TYPOGRAPHY</span>
-            <p>High-fashion editorial layout design</p>
-          </div>
         </div>
       </div>
 
@@ -212,13 +200,13 @@ export default function Dashboard({ currentUser, events, onAddEvent, onSelectEve
 
                     {ev.location && (
                       <p style={{ fontSize: '0.8rem', color: '#555', marginBottom: '4px' }}>
-                        📍 <strong>Location:</strong> {ev.location}
+                        <strong>Location:</strong> {ev.location}
                       </p>
                     )}
 
                     {ev.capacity && (
                       <p style={{ fontSize: '0.8rem', color: '#555', marginBottom: '4px' }}>
-                        👥 <strong>Capacity:</strong> {ev.capacity} Guests
+                        <strong>Capacity:</strong> {ev.capacity} Guests
                       </p>
                     )}
 

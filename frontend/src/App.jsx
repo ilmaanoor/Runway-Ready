@@ -48,38 +48,44 @@ const INITIAL_EVENTS = [
   }
 ];
 
+// INITIAL_SECTIONS: capacities are proportional to each event's total capacity
+// Event 1 = 200 seats, Event 2 = 150 seats, Event 3 = 500 (virtual)
+// Distribution: VIP 20%, Press 20%, Buyer 25%, General 35%
 const INITIAL_SECTIONS = [
-  // Sections for Event 1 (Physical)
-  { id: 1, eventId: 1, name: 'Front Row A (VIP)', allowed_tier: 'VIP', capacity: 5 },
-  { id: 2, eventId: 1, name: 'Press Box B (Press)', allowed_tier: 'Press', capacity: 6 },
-  { id: 3, eventId: 1, name: 'Buyer Lounge C (Buyer)', allowed_tier: 'Buyer', capacity: 8 },
-  { id: 4, eventId: 1, name: 'General Gallery D', allowed_tier: 'General', capacity: 10 },
+  // Sections for Event 1 (Physical, capacity=200)
+  { id: 1, eventId: 1, name: 'Front Row A (VIP)',       allowed_tier: 'VIP',     capacity: 40  },
+  { id: 2, eventId: 1, name: 'Press Box B (Press)',     allowed_tier: 'Press',   capacity: 40  },
+  { id: 3, eventId: 1, name: 'Buyer Lounge C (Buyer)',  allowed_tier: 'Buyer',   capacity: 50  },
+  { id: 4, eventId: 1, name: 'General Gallery D',       allowed_tier: 'General', capacity: 70  },
 
-  // Sections for Event 2 (Physical)
-  { id: 5, eventId: 2, name: 'Front Row A (VIP)', allowed_tier: 'VIP', capacity: 5 },
-  { id: 6, eventId: 2, name: 'Press Row B (Press)', allowed_tier: 'Press', capacity: 6 },
-  { id: 7, eventId: 2, name: 'Buyer Lounge C (Buyer)', allowed_tier: 'Buyer', capacity: 8 },
-  { id: 8, eventId: 2, name: 'General Gallery D', allowed_tier: 'General', capacity: 10 },
+  // Sections for Event 2 (Physical, capacity=150)
+  { id: 5, eventId: 2, name: 'Front Row A (VIP)',       allowed_tier: 'VIP',     capacity: 30  },
+  { id: 6, eventId: 2, name: 'Press Row B (Press)',     allowed_tier: 'Press',   capacity: 30  },
+  { id: 7, eventId: 2, name: 'Buyer Lounge C (Buyer)',  allowed_tier: 'Buyer',   capacity: 37  },
+  { id: 8, eventId: 2, name: 'General Gallery D',       allowed_tier: 'General', capacity: 53  },
 
-  // Sections for Event 3 (Virtual)
-  { id: 9, eventId: 3, name: 'VIP Stream Access', allowed_tier: 'VIP', capacity: 100 },
-  { id: 10, eventId: 3, name: 'Press Media Access', allowed_tier: 'Press', capacity: 100 },
-  { id: 11, eventId: 3, name: 'Buyer Pass Access', allowed_tier: 'Buyer', capacity: 100 },
-  { id: 12, eventId: 3, name: 'General Audience Stream', allowed_tier: 'General', capacity: 500 }
+  // Sections for Event 3 (Virtual, capacity=500)
+  { id: 9,  eventId: 3, name: 'VIP Stream Access',       allowed_tier: 'VIP',     capacity: 100 },
+  { id: 10, eventId: 3, name: 'Press Media Access',      allowed_tier: 'Press',   capacity: 100 },
+  { id: 11, eventId: 3, name: 'Buyer Pass Access',       allowed_tier: 'Buyer',   capacity: 125 },
+  { id: 12, eventId: 3, name: 'General Audience Stream', allowed_tier: 'General', capacity: 175 }
 ];
 
 const INITIAL_GUESTS = [
-  { id: 1, eventId: 1, name: 'Anna Wintour', tier: 'VIP', brand: 'Chanel', checked_in: 1 },
-  { id: 2, eventId: 1, name: 'Bernard Arnault', tier: 'VIP', brand: 'Dior', checked_in: 0 },
-  { id: 3, eventId: 1, name: 'Edward Enninful', tier: 'Press', brand: 'Vogue', checked_in: 1 },
-  { id: 4, eventId: 1, name: 'Hailey Bieber', tier: 'General', brand: 'Independent', checked_in: 0 },
-  { id: 5, eventId: 1, name: 'Milan Retail Buyer', tier: 'Buyer', brand: 'Prada', checked_in: 0 }
+  { id: 1, eventId: 1, name: 'Anna Wintour',      tier: 'VIP',     brand: 'Chanel',      checked_in: 1 },
+  { id: 2, eventId: 1, name: 'Bernard Arnault',   tier: 'VIP',     brand: 'Dior',        checked_in: 0 },
+  { id: 3, eventId: 1, name: 'Edward Enninful',   tier: 'Press',   brand: 'Vogue',       checked_in: 1 },
+  { id: 4, eventId: 1, name: 'Hailey Bieber',     tier: 'General', brand: 'Independent', checked_in: 0 },
+  { id: 5, eventId: 1, name: 'Milan Retail Buyer',tier: 'Buyer',   brand: 'Prada',       checked_in: 0 }
 ];
 
-const INITIAL_RIVALS = [
+// "Seating Separation Protocol" — replaces "Rival Brands" terminology.
+// These are pairs of brands that should NOT be seated adjacent to each other
+// as per fashion industry seating etiquette (not "rivals" — just preferred separation).
+const INITIAL_SEPARATION = [
   { id: 1, brandA: 'Chanel', brandB: 'Dior' },
-  { id: 2, brandA: 'Gucci', brandB: 'Balenciaga' },
-  { id: 3, brandA: 'Prada', brandB: 'Armani' }
+  { id: 2, brandA: 'Gucci',  brandB: 'Balenciaga' },
+  { id: 3, brandA: 'Prada',  brandB: 'Armani' }
 ];
 
 export default function App() {
@@ -94,7 +100,7 @@ export default function App() {
   const [guests, setGuests] = useState(INITIAL_GUESTS);
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [seatAssignments, setSeatAssignments] = useState([]);
-  const [rivalBrands, setRivalBrands] = useState(INITIAL_RIVALS);
+  const [separationRules, setSeparationRules] = useState(INITIAL_SEPARATION);
   const [warningLogs, setWarningLogs] = useState([]);
 
   // 2. AUTHENTICATION (Login / Logout)
@@ -124,17 +130,24 @@ export default function App() {
     const newEvent = { id: newId, ...newEventData };
     setEvents([newEvent, ...events]);
 
-    // Create default sections for the new event
+    // Calculate section capacities from the event's total capacity (cinema-style)
+    const total = parseInt(newEventData.capacity) || 100;
+    const vipCap     = Math.max(1, Math.round(total * 0.20)); // 20% VIP
+    const pressCap   = Math.max(1, Math.round(total * 0.20)); // 20% Press
+    const buyerCap   = Math.max(1, Math.round(total * 0.25)); // 25% Buyer
+    const generalCap = Math.max(1, total - vipCap - pressCap - buyerCap); // Remaining
+
+    // Create default sections proportional to event capacity
     const newSections = newEventData.type === 'Physical' ? [
-      { id: Date.now() + 1, eventId: newId, name: 'Front Row A (VIP)', allowed_tier: 'VIP', capacity: 5 },
-      { id: Date.now() + 2, eventId: newId, name: 'Press Box B (Press)', allowed_tier: 'Press', capacity: 6 },
-      { id: Date.now() + 3, eventId: newId, name: 'Buyer Lounge C (Buyer)', allowed_tier: 'Buyer', capacity: 8 },
-      { id: Date.now() + 4, eventId: newId, name: 'General Gallery D', allowed_tier: 'General', capacity: 10 }
+      { id: Date.now() + 1, eventId: newId, name: 'Front Row A (VIP)',      allowed_tier: 'VIP',     capacity: vipCap     },
+      { id: Date.now() + 2, eventId: newId, name: 'Press Box B (Press)',    allowed_tier: 'Press',   capacity: pressCap   },
+      { id: Date.now() + 3, eventId: newId, name: 'Buyer Lounge C (Buyer)', allowed_tier: 'Buyer',   capacity: buyerCap   },
+      { id: Date.now() + 4, eventId: newId, name: 'General Gallery D',      allowed_tier: 'General', capacity: generalCap }
     ] : [
-      { id: Date.now() + 1, eventId: newId, name: 'VIP Stream Access', allowed_tier: 'VIP', capacity: 100 },
-      { id: Date.now() + 2, eventId: newId, name: 'Press Media Access', allowed_tier: 'Press', capacity: 100 },
-      { id: Date.now() + 3, eventId: newId, name: 'Buyer Pass Access', allowed_tier: 'Buyer', capacity: 100 },
-      { id: Date.now() + 4, eventId: newId, name: 'General Audience Stream', allowed_tier: 'General', capacity: 500 }
+      { id: Date.now() + 1, eventId: newId, name: 'VIP Stream Access',       allowed_tier: 'VIP',     capacity: vipCap     },
+      { id: Date.now() + 2, eventId: newId, name: 'Press Media Access',      allowed_tier: 'Press',   capacity: pressCap   },
+      { id: Date.now() + 3, eventId: newId, name: 'Buyer Pass Access',       allowed_tier: 'Buyer',   capacity: buyerCap   },
+      { id: Date.now() + 4, eventId: newId, name: 'General Audience Stream', allowed_tier: 'General', capacity: generalCap }
     ];
 
     setSections([...sections, ...newSections]);
@@ -202,7 +215,8 @@ export default function App() {
       return { success: false, error: err };
     }
 
-    // RULE 3: Rival Brand Clash Detection
+    // RULE 3: Seating Separation Protocol Check
+    // Checks if the guest's brand and any adjacent guest's brand are flagged for separation
     const warnings = [];
     const adjAssignments = seatAssignments.filter(s => 
       s.sectionId === section.id && 
@@ -216,15 +230,15 @@ export default function App() {
         const adjGuest = guests.find(g => g.id === adj.guestId);
         if (adjGuest && adjGuest.brand) {
           const adjBrandLower = adjGuest.brand.trim().toLowerCase();
-          const isRival = rivalBrands.some(r => 
+          const isFlagged = separationRules.some(r => 
             (r.brandA.toLowerCase() === guestBrandLower && r.brandB.toLowerCase() === adjBrandLower) ||
             (r.brandB.toLowerCase() === guestBrandLower && r.brandA.toLowerCase() === adjBrandLower)
           );
 
-          if (isRival) {
-            const warn = `⚡ RIVAL BRAND CLASH: '${guest.name}' (${guest.brand}) and '${adjGuest.name}' (${adjGuest.brand}) are rival brands and cannot be seated together! (Seat ${position} and Seat ${adj.position}).`;
-            warnings.push({ type: 'brand_clash', message: warn });
-            setWarningLogs(prev => [...prev, { id: Date.now() + Math.random(), eventId: selectedEvent.id, type: 'brand_clash', message: warn }]);
+          if (isFlagged) {
+            const warn = `SEATING SEPARATION PROTOCOL: '${guest.name}' (${guest.brand}) and '${adjGuest.name}' (${adjGuest.brand}) have a preferred separation rule. Consider reassigning to maintain seating protocol. (Seat ${position} adjacent to Seat ${adj.position}).`;
+            warnings.push({ type: 'separation_alert', message: warn });
+            setWarningLogs(prev => [...prev, { id: Date.now() + Math.random(), eventId: selectedEvent.id, type: 'separation_alert', message: warn }]);
           }
         }
       });
@@ -255,7 +269,7 @@ export default function App() {
     setSeatAssignments(seatAssignments.filter(s => s.guestId !== guestId));
   };
 
-  // 6. ADMIN MANAGEMENT (Users & Rival Brand Rules)
+  // 6. ADMIN MANAGEMENT (Users & Seating Separation Protocol Rules)
   const handleAddUser = (userData) => {
     const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
     setUsers([...users, { id: newId, ...userData }]);
@@ -265,13 +279,13 @@ export default function App() {
     setUsers(users.filter(u => u.id !== userId));
   };
 
-  const handleAddRivalBrand = (brandA, brandB) => {
-    const newId = rivalBrands.length > 0 ? Math.max(...rivalBrands.map(r => r.id)) + 1 : 1;
-    setRivalBrands([...rivalBrands, { id: newId, brandA, brandB }]);
+  const handleAddSeparationRule = (brandA, brandB) => {
+    const newId = separationRules.length > 0 ? Math.max(...separationRules.map(r => r.id)) + 1 : 1;
+    setSeparationRules([...separationRules, { id: newId, brandA, brandB }]);
   };
 
-  const handleDeleteRivalBrand = (rivalId) => {
-    setRivalBrands(rivalBrands.filter(r => r.id !== rivalId));
+  const handleDeleteSeparationRule = (ruleId) => {
+    setSeparationRules(separationRules.filter(r => r.id !== ruleId));
   };
 
   // 7. COMPONENT RENDER
@@ -327,12 +341,12 @@ export default function App() {
               <Admin 
                 selectedEvent={selectedEvent}
                 users={users}
-                rivalBrands={rivalBrands}
+                separationRules={separationRules}
                 sections={sections.filter(s => s.eventId === selectedEvent.id)}
                 onAddUser={handleAddUser}
                 onDeleteUser={handleDeleteUser}
-                onAddRivalBrand={handleAddRivalBrand}
-                onDeleteRivalBrand={handleDeleteRivalBrand}
+                onAddSeparationRule={handleAddSeparationRule}
+                onDeleteSeparationRule={handleDeleteSeparationRule}
               />
             )}
 

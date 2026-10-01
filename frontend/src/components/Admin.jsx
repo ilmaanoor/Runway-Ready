@@ -1,8 +1,8 @@
-// Admin.jsx — Pure React Admin Console (Team Management & Rival Brand Rules)
+// Admin.jsx — Pure React Admin Console (Team Management & Seating Separation Protocol)
 import React, { useState } from 'react';
 import maleModelImg from '../assets/male_model_editorial.png';
 
-export default function Admin({ selectedEvent, users, rivalBrands, sections, onAddUser, onDeleteUser, onAddRivalBrand, onDeleteRivalBrand }) {
+export default function Admin({ selectedEvent, users, separationRules, sections, onAddUser, onDeleteUser, onAddSeparationRule, onDeleteSeparationRule }) {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
@@ -37,16 +37,16 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
     setTimeout(() => setMessage(''), 4000);
   };
 
-  // Form Submit: Add New Rival Brand Pair
-  const handleRivalSubmit = (e) => {
+  // Form Submit: Add New Seating Separation Rule
+  const handleSeparationSubmit = (e) => {
     e.preventDefault();
     if (!brandA.trim() || !brandB.trim()) return;
 
-    onAddRivalBrand(brandA.trim(), brandB.trim());
+    onAddSeparationRule(brandA.trim(), brandB.trim());
 
     setBrandA('');
     setBrandB('');
-    setMessage(`Rivalry pair "${brandA} ⚡ ${brandB}" established!`);
+    setMessage(`Separation protocol set: "${brandA}" and "${brandB}" will be flagged if seated adjacent.`);
     setTimeout(() => setMessage(''), 4000);
   };
 
@@ -55,7 +55,7 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
       <div className="page-header-editorial">
         <span className="section-kicker">SYSTEM CONTROL</span>
         <h1 className="page-title">Admin Console</h1>
-        <p className="page-description">Manage team members, rival brand pairs, and section capacity limits</p>
+        <p className="page-description">Manage team members, seating separation protocol, and section capacity</p>
       </div>
 
       {message && (
@@ -64,30 +64,27 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
         </div>
       )}
 
-      {/* Editorial Fashion Portrait Banner */}
+      {/* Editorial Fashion Portrait Banner — image only, no subtitle text */}
       <div className="editorial-frame-card banner-fashion" style={{ marginBottom: '28px' }}>
-        <img src={maleModelImg} alt="Couture Model Identity" className="admin-banner-img" />
-        <div className="editorial-card-info">
-          <span className="sidebar-title">RULE MATRIX & ACCESS ROSTER</span>
-          <p>Superuser configuration for fashion show staff, capacity parameters & brand separation</p>
-        </div>
+        <img src={maleModelImg} alt="Admin Console" className="admin-banner-img" />
       </div>
 
       <div className="admin-grid-layout">
+
         {/* 1. Team Members Management Card */}
         <div className="card-editorial">
           <div className="card-header-couture">
             <h3>Team Members ({users.length})</h3>
-            <p>Add staff accounts for PR and Venue teams</p>
+            <p>Add staff accounts for event coordinators</p>
           </div>
 
           <form onSubmit={handleUserSubmit} className="form-stack" style={{ marginBottom: '20px' }}>
             <div className="form-group-editorial">
               <label>Full Name</label>
-              <input 
-                type="text" 
-                className="input-editorial" 
-                placeholder="e.g. Sophia Chen" 
+              <input
+                type="text"
+                className="input-editorial"
+                placeholder="e.g. Sophia Chen"
                 value={userName}
                 onChange={e => setUserName(e.target.value)}
                 required
@@ -96,10 +93,10 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
 
             <div className="form-group-editorial">
               <label>Email Address</label>
-              <input 
-                type="email" 
-                className="input-editorial" 
-                placeholder="e.g. sophia@runway.com" 
+              <input
+                type="email"
+                className="input-editorial"
+                placeholder="e.g. sophia@runway.com"
                 value={userEmail}
                 onChange={e => setUserEmail(e.target.value)}
                 required
@@ -108,10 +105,10 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
 
             <div className="form-group-editorial">
               <label>Password</label>
-              <input 
-                type="password" 
-                className="input-editorial" 
-                placeholder="••••••••" 
+              <input
+                type="password"
+                className="input-editorial"
+                placeholder="••••••••"
                 value={userPassword}
                 onChange={e => setUserPassword(e.target.value)}
                 required
@@ -120,12 +117,12 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
 
             <div className="form-group-editorial">
               <label>Assigned Role</label>
-              <select 
-                className="input-editorial" 
+              <select
+                className="input-editorial"
                 value={userRole}
                 onChange={e => setUserRole(e.target.value)}
               >
-                <option value="coordinator">Event Coordinator (Guest List & Seating Floor)</option>
+                <option value="coordinator">Event Coordinator (Guest List &amp; Seating Floor)</option>
                 <option value="admin">Admin (Full System Access)</option>
               </select>
             </div>
@@ -140,7 +137,7 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
             <table className="table-editorial">
               <thead>
                 <tr>
-                  <th>Name & Email</th>
+                  <th>Name &amp; Email</th>
                   <th>Role</th>
                   <th>Action</th>
                 </tr>
@@ -159,7 +156,7 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
                     </td>
                     <td>
                       {u.role !== 'admin' && (
-                        <button 
+                        <button
                           className="btn-delete-minimal"
                           onClick={() => onDeleteUser(u.id)}
                         >
@@ -174,21 +171,21 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
           </div>
         </div>
 
-        {/* 2. Rival Brands Matrix Card */}
+        {/* 2. Seating Separation Protocol Card */}
         <div className="card-editorial">
           <div className="card-header-couture">
-            <h3>Rival Brands Matrix</h3>
-            <p>Define rival fashion houses to trigger automated seating warnings</p>
+            <h3>Seating Separation Protocol</h3>
+            <p>Define brand pairs that should not be seated adjacent to each other during the event</p>
           </div>
 
-          <form onSubmit={handleRivalSubmit} className="form-stack" style={{ marginBottom: '20px' }}>
+          <form onSubmit={handleSeparationSubmit} className="form-stack" style={{ marginBottom: '20px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group-editorial">
                 <label>Brand A</label>
-                <input 
-                  type="text" 
-                  className="input-editorial" 
-                  placeholder="e.g. Chanel" 
+                <input
+                  type="text"
+                  className="input-editorial"
+                  placeholder="e.g. Chanel"
                   value={brandA}
                   onChange={e => setBrandA(e.target.value)}
                   required
@@ -197,10 +194,10 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
 
               <div className="form-group-editorial">
                 <label>Brand B</label>
-                <input 
-                  type="text" 
-                  className="input-editorial" 
-                  placeholder="e.g. Dior" 
+                <input
+                  type="text"
+                  className="input-editorial"
+                  placeholder="e.g. Dior"
                   value={brandB}
                   onChange={e => setBrandB(e.target.value)}
                   required
@@ -209,43 +206,45 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
             </div>
 
             <button type="submit" className="btn-couture btn-primary-couture">
-              + Add Rivalry Pair
+              + Add Separation Rule
             </button>
           </form>
 
-          {/* Active Rival Pairs List */}
+          {/* Active Separation Rules List */}
           <div style={{ marginTop: '16px' }}>
             <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
-              Active Rivalry Rules ({rivalBrands.length})
+              Active Separation Rules ({separationRules.length})
             </h4>
 
-            {rivalBrands.length === 0 ? (
-              <p style={{ color: '#7d7d7d', fontSize: '0.85rem' }}>No brand rivalries set.</p>
+            {separationRules.length === 0 ? (
+              <p style={{ color: '#7d7d7d', fontSize: '0.85rem' }}>No separation rules defined.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {rivalBrands.map(r => (
-                  <div 
-                    key={r.id} 
-                    style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      padding: '10px 14px', 
-                      border: '1px solid #eaeaea', 
+                {separationRules.map(r => (
+                  <div
+                    key={r.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 14px',
+                      border: '1px solid #eaeaea',
                       borderRadius: '4px',
                       background: '#ffffff'
                     }}
                   >
                     <div>
-                      <strong style={{ letterSpacing: '0.5px' }}>{r.brandA.toUpperCase()}</strong> 
-                      <span style={{ color: '#dc2626', margin: '0 8px', fontWeight: 'bold' }}>⚡</span> 
+                      <strong style={{ letterSpacing: '0.5px' }}>{r.brandA.toUpperCase()}</strong>
+                      <span style={{ color: '#64748b', margin: '0 10px', fontWeight: '400', fontSize: '0.82rem' }}>
+                        separated from
+                      </span>
                       <strong style={{ letterSpacing: '0.5px' }}>{r.brandB.toUpperCase()}</strong>
                     </div>
-                    <button 
+                    <button
                       className="btn-delete-minimal"
-                      onClick={() => onDeleteRivalBrand(r.id)}
+                      onClick={() => onDeleteSeparationRule(r.id)}
                     >
-                      Delete Rule
+                      Remove
                     </button>
                   </div>
                 ))}
@@ -253,6 +252,7 @@ export default function Admin({ selectedEvent, users, rivalBrands, sections, onA
             )}
           </div>
         </div>
+
       </div>
     </div>
   );

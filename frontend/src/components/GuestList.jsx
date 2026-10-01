@@ -109,10 +109,6 @@ export default function GuestList({ selectedEvent, guests, onAddGuest, onDeleteG
           {/* Small Vertical Editorial Image Card */}
           <div className="editorial-frame-card">
             <img src={modestCoutureImg} alt="Couture Brand Identity" className="sidebar-editorial-img vertical" />
-            <div className="editorial-card-info">
-              <span className="sidebar-title">COUTURE BRAND REGISTRY</span>
-              <p>Verified fashion house guest list</p>
-            </div>
           </div>
         </div>
 

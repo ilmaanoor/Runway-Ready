@@ -85,10 +85,9 @@ export default function Navbar({ currentUser, activePage, setActivePage, eventsL
           <div className="navbar-user">
             <div className="user-info">
               <span className="user-name">{currentUser.name}</span>
-              <span className="user-role">{currentUser.role.toUpperCase()}</span>
             </div>
             <button className="btn-signout" onClick={onLogout}>
-              SIGN OUT
+              Sign Out
             </button>
           </div>
         </div>
