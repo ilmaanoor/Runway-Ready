@@ -1,6 +1,6 @@
 // Admin.jsx — Pure React Admin Console (Team Management & Seating Separation Protocol)
 import React, { useState } from 'react';
-import maleModelImg from '../assets/male_model_editorial.png';
+import adminRunwayBanner from '../assets/admin_runway_editorial.png';
 
 export default function Admin({ selectedEvent, users, separationRules, sections, onAddUser, onDeleteUser, onAddSeparationRule, onDeleteSeparationRule }) {
   const [userName, setUserName] = useState('');
@@ -66,7 +66,7 @@ export default function Admin({ selectedEvent, users, separationRules, sections,
 
       {/* Editorial Fashion Portrait Banner — image only, no subtitle text */}
       <div className="editorial-frame-card banner-fashion" style={{ marginBottom: '28px' }}>
-        <img src={maleModelImg} alt="Admin Console" className="admin-banner-img" />
+        <img src={adminRunwayBanner} alt="Runway Showcase" className="admin-banner-img" />
       </div>
 
       <div className="admin-grid-layout">
