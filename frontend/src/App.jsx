@@ -2,7 +2,7 @@
 // Pure React Application built for Stella Maris College BCA Coursework
 // 2-Tier Architecture: Admin (Supervisor) & Event Coordinator (Staff)
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -89,19 +89,89 @@ const INITIAL_SEPARATION = [
 ];
 
 export default function App() {
-  // 1. MAIN APPLICATION STATE (React useState Hooks)
-  const [currentUser, setCurrentUser] = useState(null);
-  const [activePage, setActivePage] = useState('login');
-  const [selectedEvent, setSelectedEvent] = useState(INITIAL_EVENTS[0]);
+  // 1. MAIN APPLICATION STATE
+  // Each state loads from localStorage first; falls back to INITIAL data if nothing saved yet.
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('rr_currentUser');
+    return saved ? JSON.parse(saved) : null;
+  });
 
-  // Master Data State
-  const [users, setUsers] = useState(INITIAL_USERS);
-  const [events, setEvents] = useState(INITIAL_EVENTS);
-  const [guests, setGuests] = useState(INITIAL_GUESTS);
-  const [sections, setSections] = useState(INITIAL_SECTIONS);
-  const [seatAssignments, setSeatAssignments] = useState([]);
-  const [separationRules, setSeparationRules] = useState(INITIAL_SEPARATION);
-  const [warningLogs, setWarningLogs] = useState([]);
+  const [activePage, setActivePage] = useState(() => {
+    const saved = localStorage.getItem('rr_activePage');
+    return saved ? saved : 'login';
+  });
+
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem('rr_users');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
+  });
+
+  const [events, setEvents] = useState(() => {
+    const saved = localStorage.getItem('rr_events');
+    return saved ? JSON.parse(saved) : INITIAL_EVENTS;
+  });
+
+  const [guests, setGuests] = useState(() => {
+    const saved = localStorage.getItem('rr_guests');
+    return saved ? JSON.parse(saved) : INITIAL_GUESTS;
+  });
+
+  const [sections, setSections] = useState(() => {
+    const saved = localStorage.getItem('rr_sections');
+    return saved ? JSON.parse(saved) : INITIAL_SECTIONS;
+  });
+
+  const [seatAssignments, setSeatAssignments] = useState(() => {
+    const saved = localStorage.getItem('rr_assignments');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [separationRules, setSeparationRules] = useState(() => {
+    const saved = localStorage.getItem('rr_separation');
+    return saved ? JSON.parse(saved) : INITIAL_SEPARATION;
+  });
+
+  const [warningLogs, setWarningLogs] = useState(() => {
+    const saved = localStorage.getItem('rr_warnings');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // selectedEvent: restore from localStorage or default to first event
+  const [selectedEvent, setSelectedEvent] = useState(() => {
+    const savedEvents = localStorage.getItem('rr_events');
+    const evList = savedEvents ? JSON.parse(savedEvents) : INITIAL_EVENTS;
+    const savedSelectedId = localStorage.getItem('rr_selectedEventId');
+    if (savedSelectedId) {
+      const parsedId = JSON.parse(savedSelectedId);
+      const found = evList.find(e => e.id === parsedId);
+      if (found) return found;
+    }
+    return evList[0] || null;
+  });
+
+  // 2. AUTO-SAVE: whenever any state changes, save it to localStorage
+  useEffect(() => { localStorage.setItem('rr_users',       JSON.stringify(users));        }, [users]);
+  useEffect(() => { localStorage.setItem('rr_events',      JSON.stringify(events));       }, [events]);
+  useEffect(() => { localStorage.setItem('rr_guests',      JSON.stringify(guests));       }, [guests]);
+  useEffect(() => { localStorage.setItem('rr_sections',    JSON.stringify(sections));     }, [sections]);
+  useEffect(() => { localStorage.setItem('rr_assignments', JSON.stringify(seatAssignments)); }, [seatAssignments]);
+  useEffect(() => { localStorage.setItem('rr_separation',  JSON.stringify(separationRules)); }, [separationRules]);
+  useEffect(() => { localStorage.setItem('rr_warnings',    JSON.stringify(warningLogs));  }, [warningLogs]);
+  useEffect(() => {
+    if (selectedEvent) {
+      localStorage.setItem('rr_selectedEventId', JSON.stringify(selectedEvent.id));
+    }
+  }, [selectedEvent]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('rr_currentUser', JSON.stringify(currentUser));
+      localStorage.setItem('rr_activePage', activePage);
+    } else {
+      localStorage.removeItem('rr_currentUser');
+      localStorage.removeItem('rr_activePage');
+    }
+  }, [currentUser, activePage]);
 
   // 2. AUTHENTICATION (Login / Logout)
   const handleLogin = (email, password) => {
@@ -122,13 +192,16 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     setActivePage('login');
+    localStorage.removeItem('rr_currentUser');
+    localStorage.removeItem('rr_activePage');
   };
 
   // 3. EVENT CRUD OPERATIONS
   const handleAddEvent = (newEventData) => {
     const newId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
     const newEvent = { id: newId, ...newEventData };
-    setEvents([newEvent, ...events]);
+    const updatedEvents = [newEvent, ...events];
+    setEvents(updatedEvents);
 
     // Calculate section capacities from the event's total capacity (cinema-style)
     const total = parseInt(newEventData.capacity) || 100;
@@ -152,6 +225,19 @@ export default function App() {
 
     setSections([...sections, ...newSections]);
     setSelectedEvent(newEvent);
+  };
+
+  const handleDeleteEvent = (eventId) => {
+    const updatedEvents = events.filter(e => e.id !== eventId);
+    setEvents(updatedEvents);
+    setSections(sections.filter(s => s.eventId !== eventId));
+    setGuests(guests.filter(g => g.eventId !== eventId));
+    setSeatAssignments(seatAssignments.filter(s => s.eventId !== eventId));
+    setWarningLogs(warningLogs.filter(w => w.eventId !== eventId));
+
+    if (selectedEvent && selectedEvent.id === eventId) {
+      setSelectedEvent(updatedEvents.length > 0 ? updatedEvents[0] : null);
+    }
   };
 
   const handleSelectEvent = (event) => {
@@ -311,6 +397,7 @@ export default function App() {
                 currentUser={currentUser}
                 events={events}
                 onAddEvent={handleAddEvent}
+                onDeleteEvent={handleDeleteEvent}
                 onSelectEvent={handleSelectEvent} 
                 activeSelectedEvent={selectedEvent} 
               />

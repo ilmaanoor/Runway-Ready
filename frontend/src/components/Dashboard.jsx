@@ -4,7 +4,7 @@ import fashionCollageImg from '../assets/fashion_week_collage.png';
 import illustrationImg from '../assets/couture_illustration.png';
 import typographyImg from '../assets/fashion_typography.jpg';
 
-export default function Dashboard({ currentUser, events, onAddEvent, onSelectEvent, activeSelectedEvent }) {
+export default function Dashboard({ currentUser, events, onAddEvent, onDeleteEvent, onSelectEvent, activeSelectedEvent }) {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [type, setType] = useState('Physical');
@@ -52,7 +52,7 @@ export default function Dashboard({ currentUser, events, onAddEvent, onSelectEve
         </div>
       )}
 
-      {/* Editorial Fashion Gallery Row */}
+      {/* Editorial Fashion Gallery Row — Images only, no subtitles */}
       <div className="dashboard-gallery-row">
         <div className="editorial-frame-card">
           <img src={fashionCollageImg} alt="Fashion Week Trends" className="editorial-thumbnail" />
@@ -117,7 +117,7 @@ export default function Dashboard({ currentUser, events, onAddEvent, onSelectEve
                 <input 
                   type="text" 
                   className="input-editorial" 
-                  placeholder="e.g. Grand Palais, Paris / twitch.tv/fashion" 
+                  placeholder="e.g. Grand Palais, Paris / live.runway.com" 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
@@ -165,7 +165,7 @@ export default function Dashboard({ currentUser, events, onAddEvent, onSelectEve
                 <li>Register new VIP, Press, Buyer, and General attendees.</li>
                 <li>Perform live gate check-ins as guests arrive at the venue.</li>
                 <li>Assign seats on the physical runway catwalk canvas.</li>
-                <li>Monitor automated rule-engine conflict warnings.</li>
+                <li>Monitor automated seating separation protocol alerts.</li>
               </ul>
               <div style={{ marginTop: '20px', padding: '12px', background: '#f9f9fb', borderLeft: '3px solid #000' }}>
                 👉 Select any active event on the right to manage its guest list and seating arrangement.
@@ -216,13 +216,30 @@ export default function Dashboard({ currentUser, events, onAddEvent, onSelectEve
                       </p>
                     )}
 
-                    <button 
-                      className={`btn-couture ${isSelected ? 'btn-primary-couture' : 'btn-secondary-couture'}`}
-                      style={{ width: '100%', fontSize: '0.75rem', marginTop: '8px' }}
-                      onClick={() => onSelectEvent(ev)}
-                    >
-                      {isSelected ? 'Currently Selected' : 'Select Event'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                      <button 
+                        className={`btn-couture ${isSelected ? 'btn-primary-couture' : 'btn-secondary-couture'}`}
+                        style={{ flex: 1, fontSize: '0.75rem' }}
+                        onClick={() => onSelectEvent(ev)}
+                      >
+                        {isSelected ? 'Currently Selected' : 'Select Event'}
+                      </button>
+
+                      {onDeleteEvent && (
+                        <button
+                          className="btn-delete-minimal"
+                          style={{ padding: '6px 10px', fontSize: '0.75rem', borderRadius: '4px' }}
+                          title="Delete Event"
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to delete "${ev.name}"?`)) {
+                              onDeleteEvent(ev.id);
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
