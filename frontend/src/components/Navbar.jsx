@@ -83,9 +83,8 @@ export default function Navbar({ currentUser, activePage, setActivePage, eventsL
           </div>
 
           <div className="navbar-user">
-            <div className="user-info">
-              <span className="user-name">{currentUser.name}</span>
-            </div>
+            {/* Only show name once — no role badge */}
+            <span className="user-name">{currentUser.name}</span>
             <button className="btn-signout" onClick={onLogout}>
               Sign Out
             </button>
