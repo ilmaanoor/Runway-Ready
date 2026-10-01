@@ -1,78 +1,30 @@
-import React, { useState, useEffect } from 'react';
+// GuestList.jsx — Pure React Guest Management (CRUD: Create, Read, Update, Delete)
+import React, { useState } from 'react';
 import modestCoutureImg from '../assets/modest_couture_brand.png';
 
-export default function GuestList({ selectedEvent }) {
-  const [guests, setGuests] = useState([]);
+export default function GuestList({ selectedEvent, guests, onAddGuest, onDeleteGuest, onToggleCheckin }) {
   const [name, setName] = useState('');
   const [tier, setTier] = useState('VIP');
   const [brand, setBrand] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTierFilter, setSelectedTierFilter] = useState('ALL');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [fadeCheckedIn, setFadeCheckedIn] = useState(false);
 
-  const fetchGuests = () => {
-    if (!selectedEvent) return;
-    setLoading(true);
-    fetch(`http://127.0.0.1:5000/api/guests?event_id=${selectedEvent.id}`)
-      .then(res => res.json())
-      .then(data => {
-        setGuests(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to fetch guests.');
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchGuests();
-  }, [selectedEvent]);
-
-  const handleAddGuest = (e) => {
+  // Handle Form Submission (Create Operation)
+  const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (!name || !selectedEvent) return;
+    if (!name.trim()) return;
 
-    fetch('http://127.0.0.1:5000/api/guests', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_id: selectedEvent.id,
-        name,
-        tier,
-        brand
-      })
-    })
-      .then(res => res.json())
-      .then(() => {
-        setName('');
-        setBrand('');
-        setTier('VIP');
-        fetchGuests();
-      })
-      .catch(err => setError('Could not add guest.'));
-  };
+    onAddGuest({
+      name: name.trim(),
+      tier,
+      brand: brand.trim()
+    });
 
-  const handleDeleteGuest = (id) => {
-    fetch(`http://127.0.0.1:5000/api/guests/${id}`, {
-      method: 'DELETE'
-    })
-      .then(res => res.json())
-      .then(() => fetchGuests())
-      .catch(err => setError('Could not delete guest.'));
-  };
-
-  const handleToggleCheckin = (guest) => {
-    const newStatus = guest.checked_in ? 0 : 1;
-    fetch(`http://127.0.0.1:5000/api/guests/${guest.id}/checkin`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ checked_in: newStatus })
-    })
-      .then(res => res.json())
-      .then(() => fetchGuests())
-      .catch(err => setError('Could not update check-in status.'));
+    // Reset Form Fields
+    setName('');
+    setBrand('');
+    setTier('VIP');
   };
 
   if (!selectedEvent) {
@@ -85,6 +37,7 @@ export default function GuestList({ selectedEvent }) {
     );
   }
 
+  // Filter Guests based on Search and Tier (Read Operation)
   const filteredGuests = guests.filter(g => {
     const matchesSearch = g.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (g.brand && g.brand.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -100,18 +53,16 @@ export default function GuestList({ selectedEvent }) {
         <p className="page-description">Show: <strong>{selectedEvent.name}</strong> ({selectedEvent.type})</p>
       </div>
 
-      {error && <div className="warning-overlay-banner capacity">{error}</div>}
-
       <div className="dashboard-layout">
         {/* Left Column: Form + Vertical Framed Fashion Image Card */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="card-editorial">
             <div className="card-header-couture">
               <h3>Add New Guest</h3>
-              <p>Enter guest credentials and tier</p>
+              <p>Enter guest credentials and access tier</p>
             </div>
 
-            <form onSubmit={handleAddGuest} className="form-stack">
+            <form onSubmit={handleFormSubmit} className="form-stack">
               <div className="form-group-editorial">
                 <label>Full Name</label>
                 <input 
@@ -143,7 +94,7 @@ export default function GuestList({ selectedEvent }) {
                 <input 
                   type="text" 
                   className="input-editorial" 
-                  placeholder="e.g. Chanel, Vogue, Dior" 
+                  placeholder="e.g. Chanel, Vogue, Dior, Gucci" 
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
                 />
@@ -165,26 +116,38 @@ export default function GuestList({ selectedEvent }) {
           </div>
         </div>
 
-        {/* Right Side Table */}
+        {/* Right Side Table: Attendee Directory (Read, Update, Delete) */}
         <div className="card-editorial">
-          <div className="card-header-couture" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="card-header-couture" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div>
               <h3>Attendee Directory ({filteredGuests.length})</h3>
             </div>
-            <input 
-              type="text" 
-              className="input-editorial" 
-              style={{ maxWidth: '220px' }}
-              placeholder="Search name or brand..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {/* Opacity Fade Toggle */}
+              <label style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={fadeCheckedIn} 
+                  onChange={(e) => setFadeCheckedIn(e.target.checked)} 
+                />
+                Fade Checked-In
+              </label>
+
+              {/* Search Filter Input */}
+              <input 
+                type="text" 
+                className="input-editorial" 
+                style={{ maxWidth: '200px' }}
+                placeholder="Search name or brand..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
-          {loading ? (
-            <p>Loading guest directory...</p>
-          ) : filteredGuests.length === 0 ? (
-            <p style={{ color: '#7d7d7d', fontSize: '0.9rem' }}>No guests match your criteria.</p>
+          {filteredGuests.length === 0 ? (
+            <p style={{ color: '#7d7d7d', fontSize: '0.9rem', marginTop: '16px' }}>No guests match your criteria.</p>
           ) : (
             <div className="table-editorial-wrapper">
               <table className="table-editorial">
@@ -192,13 +155,19 @@ export default function GuestList({ selectedEvent }) {
                   <tr>
                     <th>Attendee & Brand</th>
                     <th>Access Tier</th>
-                    <th>Check-In Status</th>
+                    <th>Gate Check-In</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredGuests.map(g => (
-                    <tr key={g.id} className={g.checked_in ? 'checked-in-row' : ''}>
+                    <tr 
+                      key={g.id} 
+                      style={{ 
+                        opacity: fadeCheckedIn && g.checked_in ? 0.35 : 1,
+                        transition: 'opacity 0.2s ease'
+                      }}
+                    >
                       <td>
                         <span className="guest-name-bold">{g.name}</span>
                         <span className="guest-brand-uppercase">{g.brand ? g.brand.toUpperCase() : 'INDEPENDENT'}</span>
@@ -209,17 +178,19 @@ export default function GuestList({ selectedEvent }) {
                         </span>
                       </td>
                       <td>
+                        {/* Check-In Toggle Button (Update Operation) */}
                         <button 
                           className={g.checked_in ? 'btn-checkin-green' : 'btn-checkin-pending'}
-                          onClick={() => handleToggleCheckin(g)}
+                          onClick={() => onToggleCheckin(g.id)}
                         >
                           {g.checked_in ? '✓ Checked In' : 'Pending Check-In'}
                         </button>
                       </td>
                       <td>
+                        {/* Delete Guest Button (Delete Operation) */}
                         <button 
                           className="btn-delete-minimal" 
-                          onClick={() => handleDeleteGuest(g.id)}
+                          onClick={() => onDeleteGuest(g.id)}
                         >
                           Remove
                         </button>

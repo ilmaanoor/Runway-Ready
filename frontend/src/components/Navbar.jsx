@@ -1,22 +1,7 @@
-import React, { useState, useEffect } from 'react';
+// Navbar.jsx — Pure React Navigation & Event Switcher
+import React from 'react';
 
-export default function Navbar({ currentUser, activePage, setActivePage, selectedEvent, setSelectedEvent, onLogout }) {
-  const [eventsList, setEventsList] = useState([]);
-
-  useEffect(() => {
-    if (currentUser) {
-      fetch('http://127.0.0.1:5000/api/events')
-        .then(res => res.json())
-        .then(data => {
-          setEventsList(data);
-          if (!selectedEvent && data.length > 0) {
-            setSelectedEvent(data[0]);
-          }
-        })
-        .catch(err => console.error(err));
-    }
-  }, [currentUser]);
-
+export default function Navbar({ currentUser, activePage, setActivePage, eventsList, selectedEvent, setSelectedEvent, onLogout }) {
   if (!currentUser) return null;
 
   return (
@@ -104,10 +89,10 @@ export default function Navbar({ currentUser, activePage, setActivePage, selecte
           <div className="navbar-user">
             <div className="user-info">
               <span className="user-name">{currentUser.name}</span>
-              <span className="user-role-badge">{currentUser.role.replace('_', ' ').toUpperCase()}</span>
+              <span className="user-role">{currentUser.role.toUpperCase()}</span>
             </div>
-            <button className="btn-logout" onClick={onLogout}>
-              Sign Out
+            <button className="btn-signout" onClick={onLogout}>
+              SIGN OUT
             </button>
           </div>
         </div>

@@ -1,113 +1,53 @@
-import React, { useState, useEffect } from 'react';
+// Admin.jsx — Pure React Admin Console (Team Management & Rival Brand Rules)
+import React, { useState } from 'react';
 import maleModelImg from '../assets/male_model_editorial.png';
 
-export default function Admin({ selectedEvent }) {
-  const [users, setUsers] = useState([]);
+export default function Admin({ selectedEvent, users, rivalBrands, sections, onAddUser, onDeleteUser, onAddRivalBrand, onDeleteRivalBrand }) {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [userRole, setUserRole] = useState('pr_team');
 
-  const [rivals, setRivals] = useState([]);
   const [brandA, setBrandA] = useState('');
   const [brandB, setBrandB] = useState('');
-
-  const [sections, setSections] = useState([]);
-  const [secName, setSecName] = useState('');
-  const [secTier, setSecTier] = useState('VIP');
-  const [secCap, setSecCap] = useState(10);
-
   const [message, setMessage] = useState('');
 
-  const fetchUsers = () => {
-    fetch('http://127.0.0.1:5000/api/users')
-      .then(res => res.json())
-      .then(data => setUsers(data));
-  };
-
-  const fetchRivals = () => {
-    fetch('http://127.0.0.1:5000/api/rival_brands')
-      .then(res => res.json())
-      .then(data => setRivals(data));
-  };
-
-  const fetchSections = () => {
-    if (!selectedEvent) return;
-    fetch(`http://127.0.0.1:5000/api/sections?event_id=${selectedEvent.id}`)
-      .then(res => res.json())
-      .then(data => setSections(data));
-  };
-
-  useEffect(() => {
-    fetchUsers();
-    fetchRivals();
-    if (selectedEvent) fetchSections();
-  }, [selectedEvent]);
-
-  const handleAddUser = (e) => {
+  // Form Submit: Add New Team Member
+  const handleUserSubmit = (e) => {
     e.preventDefault();
-    fetch('http://127.0.0.1:5000/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: userName, email: userEmail, password: userPassword, role: userRole })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) setMessage(data.error);
-        else {
-          setUserName(''); setUserEmail(''); setUserPassword('');
-          fetchUsers();
-        }
-      });
+    if (!userName.trim() || !userEmail.trim() || !userPassword.trim()) return;
+
+    // Check for duplicate email
+    if (users.some(u => u.email.toLowerCase() === userEmail.trim().toLowerCase())) {
+      setMessage('Error: A team member with this email already exists.');
+      return;
+    }
+
+    onAddUser({
+      name: userName.trim(),
+      email: userEmail.trim(),
+      password: userPassword.trim(),
+      role: userRole
+    });
+
+    setUserName('');
+    setUserEmail('');
+    setUserPassword('');
+    setMessage(`Team member "${userName}" added successfully!`);
+    setTimeout(() => setMessage(''), 4000);
   };
 
-  const handleDeleteUser = (id) => {
-    fetch(`http://127.0.0.1:5000/api/users/${id}`, { method: 'DELETE' })
-      .then(() => fetchUsers());
-  };
-
-  const handleAddRival = (e) => {
+  // Form Submit: Add New Rival Brand Pair
+  const handleRivalSubmit = (e) => {
     e.preventDefault();
-    fetch('http://127.0.0.1:5000/api/rival_brands', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brand_a: brandA, brand_b: brandB })
-    })
-      .then(res => res.json())
-      .then(() => {
-        setBrandA(''); setBrandB('');
-        fetchRivals();
-      });
-  };
+    if (!brandA.trim() || !brandB.trim()) return;
 
-  const handleDeleteRival = (id) => {
-    fetch(`http://127.0.0.1:5000/api/rival_brands/${id}`, { method: 'DELETE' })
-      .then(() => fetchRivals());
-  };
+    onAddRivalBrand(brandA.trim(), brandB.trim());
 
-  const handleAddSection = (e) => {
-    e.preventDefault();
-    if (!selectedEvent) return;
-    fetch('http://127.0.0.1:5000/api/sections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_id: selectedEvent.id,
-        name: secName,
-        allowed_tier: secTier,
-        capacity: parseInt(secCap)
-      })
-    })
-      .then(res => res.json())
-      .then(() => {
-        setSecName('');
-        fetchSections();
-      });
-  };
-
-  const handleDeleteSection = (id) => {
-    fetch(`http://127.0.0.1:5000/api/sections/${id}`, { method: 'DELETE' })
-      .then(() => fetchSections());
+    setBrandA('');
+    setBrandB('');
+    setMessage(`Rivalry pair "${brandA} ⚡ ${brandB}" established!`);
+    setTimeout(() => setMessage(''), 4000);
   };
 
   return (
@@ -118,65 +58,115 @@ export default function Admin({ selectedEvent }) {
         <p className="page-description">Manage team members, rival brand pairs, and section capacity limits</p>
       </div>
 
-      {message && <div className="warning-overlay-banner capacity">{message}</div>}
+      {message && (
+        <div style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981', color: '#065f46', padding: '12px 16px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: '600', borderRadius: '0 4px 4px 0' }}>
+          ✓ {message}
+        </div>
+      )}
 
-      {/* SECTION 1: Team Members */}
-      <div style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', marginBottom: '16px', borderBottom: '1px solid #eaeaea', paddingBottom: '8px' }}>
-          1. Team Members & Roles
-        </h2>
-        <div className="dashboard-layout">
-          <div className="card-editorial">
-            <div className="card-header-couture">
-              <h3>Add Team Member</h3>
-            </div>
-            <form onSubmit={handleAddUser} className="form-stack">
-              <div className="form-group-editorial">
-                <label>Full Name</label>
-                <input type="text" className="input-editorial" value={userName} onChange={e => setUserName(e.target.value)} required />
-              </div>
-              <div className="form-group-editorial">
-                <label>Email Address</label>
-                <input type="email" className="input-editorial" value={userEmail} onChange={e => setUserEmail(e.target.value)} required />
-              </div>
-              <div className="form-group-editorial">
-                <label>Password</label>
-                <input type="password" className="input-editorial" value={userPassword} onChange={e => setUserPassword(e.target.value)} required />
-              </div>
-              <div className="form-group-editorial">
-                <label>Role</label>
-                <select className="input-editorial" value={userRole} onChange={e => setUserRole(e.target.value)}>
-                  <option value="admin">Admin</option>
-                  <option value="pr_team">PR Team</option>
-                  <option value="venue_team">Venue Team</option>
-                  <option value="viewer">Viewer</option>
-                </select>
-              </div>
-              <button type="submit" className="btn-couture btn-primary-couture">+ Add Member</button>
-            </form>
+      {/* Editorial Fashion Portrait Banner */}
+      <div className="editorial-frame-card banner-fashion" style={{ marginBottom: '28px' }}>
+        <img src={maleModelImg} alt="Couture Model Identity" className="admin-banner-img" />
+        <div className="editorial-card-info">
+          <span className="sidebar-title">RULE MATRIX & ACCESS ROSTER</span>
+          <p>Superuser configuration for fashion show staff, capacity parameters & brand separation</p>
+        </div>
+      </div>
+
+      <div className="admin-grid-layout">
+        {/* 1. Team Members Management Card */}
+        <div className="card-editorial">
+          <div className="card-header-couture">
+            <h3>Team Members ({users.length})</h3>
+            <p>Add staff accounts for PR and Venue teams</p>
           </div>
 
-          <div className="card-editorial">
-            <div className="card-header-couture">
-              <h3>Team Roster ({users.length})</h3>
+          <form onSubmit={handleUserSubmit} className="form-stack" style={{ marginBottom: '20px' }}>
+            <div className="form-group-editorial">
+              <label>Full Name</label>
+              <input 
+                type="text" 
+                className="input-editorial" 
+                placeholder="e.g. Sophia Chen" 
+                value={userName}
+                onChange={e => setUserName(e.target.value)}
+                required
+              />
             </div>
+
+            <div className="form-group-editorial">
+              <label>Email Address</label>
+              <input 
+                type="email" 
+                className="input-editorial" 
+                placeholder="e.g. sophia@runway.com" 
+                value={userEmail}
+                onChange={e => setUserEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group-editorial">
+              <label>Password</label>
+              <input 
+                type="password" 
+                className="input-editorial" 
+                placeholder="••••••••" 
+                value={userPassword}
+                onChange={e => setUserPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group-editorial">
+              <label>Assigned Role</label>
+              <select 
+                className="input-editorial" 
+                value={userRole}
+                onChange={e => setUserRole(e.target.value)}
+              >
+                <option value="pr_team">PR Team (Guest List & Gate Check-In)</option>
+                <option value="venue_team">Venue Team (Catwalk Seating Floor)</option>
+                <option value="admin">Admin (Full System Access)</option>
+              </select>
+            </div>
+
+            <button type="submit" className="btn-couture btn-primary-couture">
+              + Add Member
+            </button>
+          </form>
+
+          {/* Team Members List */}
+          <div className="table-editorial-wrapper">
             <table className="table-editorial">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
+                  <th>Name & Email</th>
                   <th>Role</th>
-                  <th>Actions</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
                   <tr key={u.id}>
-                    <td><strong>{u.name}</strong></td>
-                    <td>{u.email}</td>
-                    <td><span className="tier-pill-minimal vip">{u.role.toUpperCase()}</span></td>
                     <td>
-                      <button className="btn-delete-minimal" onClick={() => handleDeleteUser(u.id)}>Delete</button>
+                      <span className="guest-name-bold">{u.name}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#777', display: 'block' }}>{u.email}</span>
+                    </td>
+                    <td>
+                      <span className={`tier-pill-minimal ${u.role === 'admin' ? 'vip' : 'press'}`}>
+                        {u.role.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>
+                      {u.role !== 'admin' && (
+                        <button 
+                          className="btn-delete-minimal"
+                          onClick={() => onDeleteUser(u.id)}
+                        >
+                          Remove
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -184,135 +174,87 @@ export default function Admin({ selectedEvent }) {
             </table>
           </div>
         </div>
-      </div>
 
-      {/* SECTION 2: Rival Brands */}
-      <div style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', marginBottom: '16px', borderBottom: '1px solid #eaeaea', paddingBottom: '8px' }}>
-          2. Rival Brand Clash Rules
-        </h2>
-        <div className="dashboard-layout">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div className="card-editorial">
-              <div className="card-header-couture">
-                <h3>Define Rival Brand Pair</h3>
-              </div>
-              <form onSubmit={handleAddRival} className="form-stack">
-                <div className="form-group-editorial">
-                  <label>Brand A</label>
-                  <input type="text" className="input-editorial" placeholder="e.g. Chanel" value={brandA} onChange={e => setBrandA(e.target.value)} required />
-                </div>
-                <div className="form-group-editorial">
-                  <label>Brand B (Rival)</label>
-                  <input type="text" className="input-editorial" placeholder="e.g. Dior" value={brandB} onChange={e => setBrandB(e.target.value)} required />
-                </div>
-                <button type="submit" className="btn-couture btn-primary-couture">+ Add Pair</button>
-              </form>
-            </div>
-
-            {/* Small Editorial Image Card */}
-            <div className="editorial-frame-card">
-              <img src={maleModelImg} alt="Brand Identity & Male Editorial" className="sidebar-editorial-img" style={{ height: '160px' }} />
-              <div className="editorial-card-info">
-                <span className="sidebar-title">BRAND CONFLICT MATRIX</span>
-                <p>Prevent rival brand clashes in adjacent seats</p>
-              </div>
-            </div>
+        {/* 2. Rival Brands Matrix Card */}
+        <div className="card-editorial">
+          <div className="card-header-couture">
+            <h3>Rival Brands Matrix</h3>
+            <p>Define rival fashion houses to trigger automated seating warnings</p>
           </div>
 
-          <div className="card-editorial">
-            <div className="card-header-couture">
-              <h3>Configured Rival Pairs ({rivals.length})</h3>
+          <form onSubmit={handleRivalSubmit} className="form-stack" style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group-editorial">
+                <label>Brand A</label>
+                <input 
+                  type="text" 
+                  className="input-editorial" 
+                  placeholder="e.g. Chanel" 
+                  value={brandA}
+                  onChange={e => setBrandA(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group-editorial">
+                <label>Brand B</label>
+                <input 
+                  type="text" 
+                  className="input-editorial" 
+                  placeholder="e.g. Dior" 
+                  value={brandB}
+                  onChange={e => setBrandB(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <table className="table-editorial">
-              <thead>
-                <tr>
-                  <th>Brand A</th>
-                  <th>Status</th>
-                  <th>Brand B</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rivals.map(r => (
-                  <tr key={r.id}>
-                    <td><strong>{r.brand_a.toUpperCase()}</strong></td>
-                    <td><span style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 'bold' }}>RIVAL</span></td>
-                    <td><strong>{r.brand_b.toUpperCase()}</strong></td>
-                    <td>
-                      <button className="btn-delete-minimal" onClick={() => handleDeleteRival(r.id)}>Delete</button>
-                    </td>
-                  </tr>
+
+            <button type="submit" className="btn-couture btn-primary-couture">
+              + Add Rivalry Pair
+            </button>
+          </form>
+
+          {/* Active Rival Pairs List */}
+          <div style={{ marginTop: '16px' }}>
+            <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
+              Active Rivalry Rules ({rivalBrands.length})
+            </h4>
+
+            {rivalBrands.length === 0 ? (
+              <p style={{ color: '#7d7d7d', fontSize: '0.85rem' }}>No brand rivalries set.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {rivalBrands.map(r => (
+                  <div 
+                    key={r.id} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      padding: '10px 14px', 
+                      border: '1px solid #eaeaea', 
+                      borderRadius: '4px',
+                      background: '#ffffff'
+                    }}
+                  >
+                    <div>
+                      <strong style={{ letterSpacing: '0.5px' }}>{r.brandA.toUpperCase()}</strong> 
+                      <span style={{ color: '#dc2626', margin: '0 8px', fontWeight: 'bold' }}>⚡</span> 
+                      <strong style={{ letterSpacing: '0.5px' }}>{r.brandB.toUpperCase()}</strong>
+                    </div>
+                    <button 
+                      className="btn-delete-minimal"
+                      onClick={() => onDeleteRivalBrand(r.id)}
+                    >
+                      Delete Rule
+                    </button>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* SECTION 3: Section Capacity Limits */}
-      {selectedEvent && (
-        <div>
-          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', marginBottom: '16px', borderBottom: '1px solid #eaeaea', paddingBottom: '8px' }}>
-            3. Section Capacity Limits ({selectedEvent.name})
-          </h2>
-          <div className="dashboard-layout">
-            <div className="card-editorial">
-              <div className="card-header-couture">
-                <h3>Add Section Limit</h3>
-              </div>
-              <form onSubmit={handleAddSection} className="form-stack">
-                <div className="form-group-editorial">
-                  <label>Section Name</label>
-                  <input type="text" className="input-editorial" placeholder="e.g. Front Row Runway" value={secName} onChange={e => setSecName(e.target.value)} required />
-                </div>
-                <div className="form-group-editorial">
-                  <label>Allowed Tier</label>
-                  <select className="input-editorial" value={secTier} onChange={e => setSecTier(e.target.value)}>
-                    <option value="VIP">VIP</option>
-                    <option value="Press">Press</option>
-                    <option value="Buyer">Buyer</option>
-                    <option value="General">General</option>
-                  </select>
-                </div>
-                <div className="form-group-editorial">
-                  <label>Max Capacity</label>
-                  <input type="number" className="input-editorial" value={secCap} onChange={e => setSecCap(e.target.value)} required min="1" />
-                </div>
-                <button type="submit" className="btn-couture btn-primary-couture">+ Add Section</button>
-              </form>
-            </div>
-
-            <div className="card-editorial">
-              <div className="card-header-couture">
-                <h3>Sections ({sections.length})</h3>
-              </div>
-              <table className="table-editorial">
-                <thead>
-                  <tr>
-                    <th>Section Name</th>
-                    <th>Allowed Tier</th>
-                    <th>Capacity Limit</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sections.map(s => (
-                    <tr key={s.id}>
-                      <td><strong>{s.name}</strong></td>
-                      <td><span className="tier-pill-minimal vip">{s.allowed_tier}</span></td>
-                      <td>{s.capacity} seats</td>
-                      <td>
-                        <button className="btn-delete-minimal" onClick={() => handleDeleteSection(s.id)}>Delete</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

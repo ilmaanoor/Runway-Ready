@@ -1,87 +1,15 @@
-import React, { useState, useEffect } from 'react';
+// SeatingPage.jsx — Pure React Physical Runway Catwalk Canvas & Virtual Access Tiers
+import React, { useState } from 'react';
 import runwayShowBanner from '../assets/runway_show_banner.png';
 import editorPortraitImg from '../assets/fashion_editor_portrait.png';
 
-export default function SeatingPage({ selectedEvent }) {
-  const [guests, setGuests] = useState([]);
-  const [sections, setSections] = useState([]);
-  const [assignments, setAssignments] = useState([]);
+export default function SeatingPage({ selectedEvent, guests, sections, assignments, onAssignSeat, onUnassignSeat }) {
   const [selectedGuestId, setSelectedGuestId] = useState(null);
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [selectedPosition, setSelectedPosition] = useState(1);
   const [warnings, setWarnings] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  const loadData = () => {
-    if (!selectedEvent) return;
-    setLoading(true);
-
-    Promise.all([
-      fetch(`http://127.0.0.1:5000/api/guests?event_id=${selectedEvent.id}`).then(res => res.json()),
-      fetch(`http://127.0.0.1:5000/api/sections?event_id=${selectedEvent.id}`).then(res => res.json()),
-      fetch(`http://127.0.0.1:5000/api/seat_assignments?event_id=${selectedEvent.id}`).then(res => res.json())
-    ])
-      .then(([guestData, sectionData, assignmentData]) => {
-        setGuests(guestData);
-        setSections(sectionData);
-        setAssignments(assignmentData);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [selectedEvent]);
-
-  const handleAssign = (guestId, sectionId, position) => {
-    if (!guestId || !sectionId) return;
-
-    setWarnings([]);
-    setSuccessMessage('');
-    setErrorMessage('');
-
-    fetch('http://127.0.0.1:5000/api/assign_seat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        guest_id: parseInt(guestId),
-        section_id: parseInt(sectionId),
-        position: parseInt(position)
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setSuccessMessage(data.message || 'Guest assigned successfully.');
-          if (data.warnings && data.warnings.length > 0) {
-            setWarnings(data.warnings);
-          }
-          loadData();
-        } else if (data.error) {
-          // Show the specific error message from backend (tier mismatch, capacity, etc.)
-          setErrorMessage(data.error);
-        }
-      })
-      .catch(err => {
-        setErrorMessage('Network error: Could not connect to backend.');
-        console.error(err);
-      });
-  };
-
-  const handleUnassign = (guestId) => {
-    fetch(`http://127.0.0.1:5000/api/unassign_seat/${guestId}`, {
-      method: 'DELETE'
-    })
-      .then(res => res.json())
-      .then(() => loadData())
-      .catch(err => console.error(err));
-  };
 
   if (!selectedEvent) {
     return (
@@ -94,7 +22,27 @@ export default function SeatingPage({ selectedEvent }) {
   }
 
   const isPhysical = selectedEvent.type === 'Physical';
-  const unassignedGuests = guests.filter(g => !assignments.some(a => a.guest_id === g.id));
+  const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
+
+  // Handle Seat Assignment using Pure React State Function
+  const handleAssign = (guestId, sectionId, position) => {
+    if (!guestId || !sectionId) return;
+
+    setWarnings([]);
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    const res = onAssignSeat(guestId, sectionId, position);
+    if (res.success) {
+      setSuccessMessage(res.message);
+      if (res.warnings && res.warnings.length > 0) {
+        setWarnings(res.warnings);
+      }
+      setSelectedGuestId(null);
+    } else {
+      setErrorMessage(res.error);
+    }
+  };
 
   return (
     <div className="page-wrapper">
@@ -108,14 +56,14 @@ export default function SeatingPage({ selectedEvent }) {
         </p>
       </div>
 
-      {/* Strict Error Banner (Tier Mismatch / Capacity Full) */}
+      {/* Strict Tier Mismatch / Capacity Error Banner */}
       {errorMessage && (
         <div className="seating-error-banner">
           BLOCKED: {errorMessage}
         </div>
       )}
 
-      {/* Rival Brand Clash Warning Banner — shows exact names */}
+      {/* Rival Brand Clash Warning Banner (Names exact rival attendees & brands) */}
       {warnings.length > 0 && (
         <div className="seating-rival-banner">
           <strong>RIVAL BRAND SEATING CONFLICT DETECTED:</strong>
@@ -127,6 +75,7 @@ export default function SeatingPage({ selectedEvent }) {
         </div>
       )}
 
+      {/* Success Notification */}
       {successMessage && !warnings.length && !errorMessage && (
         <div style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981', color: '#065f46', padding: '12px 16px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: '600', borderRadius: '0 4px 4px 0' }}>
           ✓ {successMessage}
@@ -134,9 +83,9 @@ export default function SeatingPage({ selectedEvent }) {
       )}
 
       {isPhysical ? (
-        /* PHYSICAL EVENT VIEW (25% LEFT SIDEBAR + 75% MAIN RUNWAY CANVAS) */
+        /* PHYSICAL RUNWAY VIEW (25% Left Sidebar + 75% Runway Canvas) */
         <div className="seating-split-layout">
-          {/* Left Sidebar (25% Width): Unassigned Guest Pool */}
+          {/* Left Sidebar: Unassigned Guest Pool */}
           <div className="unassigned-sidebar">
             <h3 className="sidebar-title">Unassigned Guests ({unassignedGuests.length})</h3>
             <div className="unassigned-guest-list">
@@ -147,7 +96,12 @@ export default function SeatingPage({ selectedEvent }) {
                   <div 
                     key={g.id} 
                     className={`unassigned-guest-item ${selectedGuestId === g.id ? 'selected' : ''}`}
-                    onClick={() => { setSelectedGuestId(g.id); setSelectedSectionId(''); setErrorMessage(''); setWarnings([]); }}
+                    onClick={() => { 
+                      setSelectedGuestId(g.id); 
+                      setSelectedSectionId(''); 
+                      setErrorMessage(''); 
+                      setWarnings([]); 
+                    }}
                   >
                     <div className="guest-name-bold">{g.name}</div>
                     <div className="guest-brand-uppercase">
@@ -158,9 +112,9 @@ export default function SeatingPage({ selectedEvent }) {
               )}
             </div>
 
+            {/* Sidebar Assignment Form */}
             {selectedGuestId && (() => {
               const selectedGuest = guests.find(g => g.id === selectedGuestId);
-              // Only show sections matching the guest's tier
               const allowedSections = sections.filter(s => s.allowed_tier === (selectedGuest ? selectedGuest.tier : ''));
               return (
                 <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eaeaea' }}>
@@ -205,9 +159,9 @@ export default function SeatingPage({ selectedEvent }) {
               );
             })()}
 
-            {/* Small Framed Portrait Card in Left Sidebar */}
+            {/* Small Portrait Card in Sidebar */}
             <div className="editorial-frame-card" style={{ marginTop: '24px' }}>
-              <img src={editorPortraitImg} alt="New York Fashion Week Editor" className="sidebar-editorial-img" />
+              <img src={editorPortraitImg} alt="Fashion Editor Portrait" className="sidebar-editorial-img" />
               <div className="editorial-card-info" style={{ marginTop: '6px' }}>
                 <span className="sidebar-title" style={{ fontSize: '0.7rem' }}>FRONT ROW REGISTRY</span>
                 <p style={{ fontSize: '0.75rem' }}>VIP Guest Protocol & Seating</p>
@@ -215,22 +169,22 @@ export default function SeatingPage({ selectedEvent }) {
             </div>
           </div>
 
-          {/* Main Canvas (75% Width): Runway Layout */}
+          {/* Main Runway Catwalk Canvas */}
           <div className="runway-main-canvas">
-            {/* Wide Runway Show Banner Format */}
+            {/* Wide Banner */}
             <div className="runway-banner-container">
-              <img src={runwayShowBanner} alt="Runway Catwalk Show" className="runway-banner-img" />
+              <img src={runwayShowBanner} alt="Runway Show Banner" className="runway-banner-img" />
               <div className="runway-banner-overlay-text">RUNWAY CATWALK SHOWCASE</div>
             </div>
 
-            {/* Center Black Runway Rectangle */}
+            {/* Center Runway Strip */}
             <div className="runway-stage-center">
               R U N W A Y
             </div>
 
             {/* Parallel Seat Blocks Grouped by Section */}
             {sections.map(sec => {
-              const secAssignments = assignments.filter(a => a.section_id === sec.id);
+              const secAssignments = assignments.filter(a => a.sectionId === sec.id);
               return (
                 <div key={sec.id} className="seat-row-block">
                   <h4 className="section-block-title">
@@ -239,23 +193,25 @@ export default function SeatingPage({ selectedEvent }) {
                   <div className="seat-grid-parallel">
                     {Array.from({ length: sec.capacity }, (_, i) => i + 1).map(pos => {
                       const assigned = secAssignments.find(a => a.position === pos);
-                      const hasClash = warnings.some(w => w.type === 'brand_clash');
                       return (
                         <div 
                           key={pos} 
-                          className={`seat-square-block ${assigned ? 'occupied' : ''} ${assigned && hasClash ? 'has-clash' : ''}`}
+                          className={`seat-square-block ${assigned ? 'occupied' : ''}`}
                           style={{ cursor: 'pointer' }}
-                          title={assigned ? 'Click to unassign seat' : 'Click to assign guest to this seat'}
+                          title={assigned ? 'Click to unassign seat' : 'Click to assign guest'}
                           onClick={() => {
                             if (assigned) {
-                              handleUnassign(assigned.guest_id);
+                              onUnassignSeat(assigned.guestId);
                             } else {
-                              const guestToAssign = selectedGuestId || (unassignedGuests[0] ? unassignedGuests[0].id : null);
+                              // If a guest is selected in sidebar, assign that guest
+                              // Otherwise, find the next unassigned guest matching this section's tier
+                              const matchingUnassigned = unassignedGuests.filter(g => g.tier === sec.allowed_tier);
+                              const guestToAssign = selectedGuestId || (matchingUnassigned[0] ? matchingUnassigned[0].id : null);
+                              
                               if (guestToAssign) {
                                 handleAssign(guestToAssign, sec.id, pos);
-                                setSelectedGuestId(null);
                               } else {
-                                alert('No unassigned guests available. Please add guests in the Guest List tab first!');
+                                alert(`No unassigned ${sec.allowed_tier} guests available! Please add ${sec.allowed_tier} guests in the Guest List tab first.`);
                               }
                             }
                           }}
@@ -263,8 +219,8 @@ export default function SeatingPage({ selectedEvent }) {
                           <span className="seat-num-tag">Seat {pos}</span>
                           {assigned ? (
                             <div>
-                              <div className="seat-guest-name-text">{assigned.guest_name}</div>
-                              <div className="seat-guest-brand-text">{assigned.guest_brand || 'No Brand'}</div>
+                              <div className="seat-guest-name-text">{assigned.guestName}</div>
+                              <div className="seat-guest-brand-text">{assigned.guestBrand || 'INDEPENDENT'}</div>
                             </div>
                           ) : (
                             <span style={{ color: '#000', fontWeight: 'bold', fontSize: '0.75rem' }}>+ Vacant</span>
@@ -279,10 +235,10 @@ export default function SeatingPage({ selectedEvent }) {
           </div>
         </div>
       ) : (
-        /* VIRTUAL EVENT VIEW (3 COLUMNS) */
+        /* VIRTUAL EVENT VIEW (3 Access Column Cards) */
         <div className="virtual-three-columns">
           {sections.map(sec => {
-            const secAssignments = assignments.filter(a => a.section_id === sec.id);
+            const secAssignments = assignments.filter(a => a.sectionId === sec.id);
             const capacityPct = Math.round((secAssignments.length / sec.capacity) * 100);
             return (
               <div key={sec.id} className="virtual-column-card">
@@ -300,12 +256,12 @@ export default function SeatingPage({ selectedEvent }) {
                     secAssignments.map(a => (
                       <div key={a.id} className="virtual-guest-row">
                         <div>
-                          <div className="guest-name-bold">{a.guest_name}</div>
-                          <div className="guest-brand-uppercase">{a.guest_brand || 'INDEPENDENT'}</div>
+                          <div className="guest-name-bold">{a.guestName}</div>
+                          <div className="guest-brand-uppercase">{a.guestBrand || 'INDEPENDENT'}</div>
                         </div>
                         <button 
                           className="btn-delete-minimal" 
-                          onClick={() => handleUnassign(a.guest_id)}
+                          onClick={() => onUnassignSeat(a.guestId)}
                         >
                           Remove
                         </button>

@@ -1,57 +1,41 @@
-import React, { useState, useEffect } from 'react';
+// Dashboard.jsx — Pure React Event Dashboard & Form Handling
+import React, { useState } from 'react';
 import fashionCollageImg from '../assets/fashion_week_collage.png';
 import illustrationImg from '../assets/couture_illustration.png';
 import typographyImg from '../assets/fashion_typography.jpg';
 
-export default function Dashboard({ currentUser, onSelectEvent, activeSelectedEvent }) {
-  const [events, setEvents] = useState([]);
+export default function Dashboard({ currentUser, events, onAddEvent, onSelectEvent, activeSelectedEvent }) {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [type, setType] = useState('Physical');
   const [location, setLocation] = useState('');
   const [capacity, setCapacity] = useState('100');
   const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const fetchEvents = () => {
-    setLoading(true);
-    fetch('http://127.0.0.1:5000/api/events')
-      .then(res => res.json())
-      .then(data => {
-        setEvents(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to fetch events from backend.');
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
+  // Handle Form Submission using Pure React State
   const handleCreateEvent = (e) => {
     e.preventDefault();
     if (!name || !date) return;
 
-    fetch('http://127.0.0.1:5000/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, date, type, location, capacity, description })
-    })
-      .then(res => res.json())
-      .then(() => {
-        setName('');
-        setDate('');
-        setType('Physical');
-        setLocation('');
-        setCapacity('100');
-        setDescription('');
-        fetchEvents();
-      })
-      .catch(err => setError('Could not create event.'));
+    onAddEvent({
+      name,
+      date,
+      type,
+      location: location || (type === 'Physical' ? 'Runway Arena' : 'Livestream Portal'),
+      capacity: parseInt(capacity) || 100,
+      description: description || 'Exclusive Runway Showcase'
+    });
+
+    // Reset Form Fields
+    setName('');
+    setDate('');
+    setType('Physical');
+    setLocation('');
+    setCapacity('100');
+    setDescription('');
+    setSuccessMessage(`Event "${name}" created successfully!`);
+    setTimeout(() => setSuccessMessage(''), 4000);
   };
 
   return (
@@ -62,7 +46,11 @@ export default function Dashboard({ currentUser, onSelectEvent, activeSelectedEv
         <p className="page-description">Oversee fashion show events, seating rosters, and virtual access tiers</p>
       </div>
 
-      {error && <div className="warning-overlay-banner capacity">{error}</div>}
+      {successMessage && (
+        <div style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981', color: '#065f46', padding: '12px 16px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: '600', borderRadius: '0 4px 4px 0' }}>
+          ✓ {successMessage}
+        </div>
+      )}
 
       {/* Editorial Fashion Gallery Row */}
       <div className="dashboard-gallery-row">
@@ -92,7 +80,7 @@ export default function Dashboard({ currentUser, onSelectEvent, activeSelectedEv
       </div>
 
       <div className="dashboard-layout" style={{ marginTop: '28px' }}>
-        {/* Left Card: Create Event for Admin / Role Workstation Card for Staff */}
+        {/* Left Card: Create Event Form for Admin / Workstation Card for Staff */}
         {currentUser && currentUser.role === 'admin' ? (
           <div className="card-editorial">
             <div className="card-header-couture">
@@ -217,16 +205,14 @@ export default function Dashboard({ currentUser, onSelectEvent, activeSelectedEv
           </div>
         )}
 
-        {/* List Events */}
+        {/* Right Card: List Events (Read Operation using Array .map) */}
         <div className="card-editorial">
           <div className="card-header-couture">
             <h3>Active Events ({events.length})</h3>
             <p>Select an event to configure seating or access tiers</p>
           </div>
 
-          {loading ? (
-            <p>Loading events...</p>
-          ) : events.length === 0 ? (
+          {events.length === 0 ? (
             <p style={{ color: '#7d7d7d' }}>No events scheduled.</p>
           ) : (
             <div className="events-grid-couture">

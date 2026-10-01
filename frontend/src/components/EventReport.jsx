@@ -1,29 +1,7 @@
-import React, { useState, useEffect } from 'react';
+// EventReport.jsx — Pure React Post-Event Analytics & Conflict Audit Logs
+import React from 'react';
 
-export default function EventReport({ selectedEvent }) {
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const fetchReport = () => {
-    if (!selectedEvent) return;
-    setLoading(true);
-    fetch(`http://127.0.0.1:5000/api/report/${selectedEvent.id}`)
-      .then(res => res.json())
-      .then(data => {
-        setReport(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to fetch event report.');
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchReport();
-  }, [selectedEvent]);
-
+export default function EventReport({ selectedEvent, guests, warningLogs }) {
   if (!selectedEvent) {
     return (
       <div className="page-wrapper">
@@ -34,9 +12,27 @@ export default function EventReport({ selectedEvent }) {
     );
   }
 
-  const attendanceRate = report && report.totals.total_guests > 0 
-    ? Math.round((report.totals.checked_in / report.totals.total_guests) * 100) 
-    : 0;
+  // 1. Calculate Overall Attendance Metrics
+  const totalGuests = guests.length;
+  const checkedInGuests = guests.filter(g => g.checked_in === 1).length;
+  const attendanceRate = totalGuests > 0 ? Math.round((checkedInGuests / totalGuests) * 100) : 0;
+
+  // 2. Calculate Tier-wise No-Show Rates
+  const tiers = ['VIP', 'Press', 'Buyer', 'General'];
+  const tierStats = tiers.map(tierName => {
+    const tierGuests = guests.filter(g => g.tier.toUpperCase() === tierName.toUpperCase());
+    const total = tierGuests.length;
+    const checkedIn = tierGuests.filter(g => g.checked_in === 1).length;
+    const noShow = total - checkedIn;
+    const noShowPct = total > 0 ? Math.round((noShow / total) * 100) : 0;
+    return {
+      tier: tierName,
+      total,
+      checkedIn,
+      noShow,
+      noShowPct
+    };
+  });
 
   return (
     <div className="page-wrapper">
@@ -46,98 +42,94 @@ export default function EventReport({ selectedEvent }) {
         <p className="page-description">Show: <strong>{selectedEvent.name}</strong> ({selectedEvent.type})</p>
       </div>
 
-      {error && <div className="warning-overlay-banner capacity">{error}</div>}
-
-      {loading || !report ? (
-        <p>Loading analytics data...</p>
-      ) : (
-        <div>
-          {/* Top Row Metrics: 3 Clean Oversized Text Cards */}
-          <div className="top-metrics-row">
-            <div className="oversized-metric-card">
-              <div className="metric-number-massive">{attendanceRate}%</div>
-              <div className="metric-label-gray">Attendance Rate (Invited vs. Arrived)</div>
-            </div>
-
-            <div className="oversized-metric-card">
-              <div className="metric-number-massive">{report.totals.checked_in}</div>
-              <div className="metric-label-gray">Total Checked-In Guests</div>
-            </div>
-
-            <div className="oversized-metric-card">
-              <div className="metric-number-massive">{report.warnings_summary.total_warnings}</div>
-              <div className="metric-label-gray">Rule-Engine Conflicts Prevented</div>
-            </div>
+      <div>
+        {/* Top Row Metrics: 3 Clean Oversized Text Cards */}
+        <div className="top-metrics-row">
+          <div className="oversized-metric-card">
+            <div className="metric-number-massive">{attendanceRate}%</div>
+            <div className="metric-label-gray">Attendance Rate (Invited vs. Arrived)</div>
           </div>
 
-          {/* Middle Section: Two Side-by-Side Grid Panels */}
-          <div className="report-split-panels">
-            {/* Left Panel: Progress Bar Chart for No-Show % by Tier */}
-            <div className="card-editorial">
-              <div className="card-header-couture">
-                <h3>No-Show Percentage by Tier</h3>
-                <p>Breakdown of absences across VIP, Press, Buyer, and General tiers</p>
-              </div>
+          <div className="oversized-metric-card">
+            <div className="metric-number-massive">{checkedInGuests}</div>
+            <div className="metric-label-gray">Total Checked-In Guests</div>
+          </div>
 
-              {report.tier_stats.length === 0 ? (
-                <p style={{ color: '#7d7d7d' }}>No guest data recorded.</p>
-              ) : (
-                <div style={{ marginTop: '16px' }}>
-                  {report.tier_stats.map((t, idx) => (
-                    <div key={idx} className="progress-bar-row">
-                      <div className="progress-row-header">
-                        <span>{t.tier.toUpperCase()} TIER</span>
-                        <span>{t.no_show_pct}% No-Show ({t.no_show} of {t.total})</span>
-                      </div>
-                      <div className="progress-track">
-                        <div 
-                          className="progress-fill" 
-                          style={{ width: `${t.no_show_pct}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Right Panel: Rule-Engine Conflicts Prevented Summary */}
-            <div className="card-editorial">
-              <div className="card-header-couture">
-                <h3>Rule-Engine Conflict Log</h3>
-                <p>Summary of policy checks caught by the system</p>
-              </div>
-
-              <table className="table-editorial">
-                <thead>
-                  <tr>
-                    <th>Conflict Type</th>
-                    <th>Color Code</th>
-                    <th>Events Prevented</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>Tier Mismatches</strong></td>
-                    <td><span style={{ color: '#d97706', fontWeight: 'bold' }}>■ Ochre</span></td>
-                    <td><strong>{report.warnings_summary.tier_mismatch}</strong></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Brand Clashes</strong></td>
-                    <td><span style={{ color: '#dc2626', fontWeight: 'bold' }}>■ Deep Crimson</span></td>
-                    <td><strong>{report.warnings_summary.brand_clash}</strong></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Capacity Full Blocks</strong></td>
-                    <td><span style={{ color: '#4b5563', fontWeight: 'bold' }}>■ Muted Slate</span></td>
-                    <td><strong>{report.warnings_summary.capacity_full}</strong></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div className="oversized-metric-card">
+            <div className="metric-number-massive">{warningLogs.length}</div>
+            <div className="metric-label-gray">Rule-Engine Conflicts Flagged</div>
           </div>
         </div>
-      )}
+
+        {/* Middle Section: Two Side-by-Side Grid Panels */}
+        <div className="report-split-panels" style={{ marginTop: '24px' }}>
+          {/* Left Panel: Progress Bar Chart for No-Show % by Tier */}
+          <div className="card-editorial">
+            <div className="card-header-couture">
+              <h3>No-Show Percentage by Tier</h3>
+              <p>Breakdown of absences across VIP, Press, Buyer, and General tiers</p>
+            </div>
+
+            {totalGuests === 0 ? (
+              <p style={{ color: '#7d7d7d', marginTop: '16px' }}>No guest data recorded for this show.</p>
+            ) : (
+              <div style={{ marginTop: '16px' }}>
+                {tierStats.map((t, idx) => (
+                  <div key={idx} className="progress-bar-row">
+                    <div className="progress-row-header">
+                      <span>{t.tier.toUpperCase()} TIER</span>
+                      <span>{t.noShowPct}% No-Show ({t.noShow} of {t.total})</span>
+                    </div>
+                    <div className="progress-track">
+                      <div 
+                        className="progress-fill" 
+                        style={{ width: `${t.noShowPct}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Panel: Rule Engine Conflict Log Summary Table */}
+          <div className="card-editorial">
+            <div className="card-header-couture">
+              <h3>Rule-Engine Conflict Log</h3>
+              <p>Audit trail of seating rule violations flagged by the automated engine</p>
+            </div>
+
+            {warningLogs.length === 0 ? (
+              <p style={{ color: '#7d7d7d', marginTop: '16px' }}>No conflict warnings recorded. All seating rules followed!</p>
+            ) : (
+              <div className="table-editorial-wrapper" style={{ marginTop: '12px' }}>
+                <table className="table-editorial">
+                  <thead>
+                    <tr>
+                      <th>Violation Type</th>
+                      <th>Details & Message</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {warningLogs.map((w, idx) => (
+                      <tr key={idx}>
+                        <td>
+                          <span className={`tier-pill-minimal ${w.type === 'brand_clash' ? 'vip' : 'general'}`}>
+                            {w.type.toUpperCase().replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#333' }}>
+                          {w.message}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

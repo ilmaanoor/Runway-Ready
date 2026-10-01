@@ -1,35 +1,20 @@
+// Login.jsx — Pure React Authentication Form
 import React, { useState } from 'react';
 import portraitCoutureImg from '../assets/couture_illustration.png';
 
-export default function Login({ onLoginSuccess }) {
+export default function Login({ onLogin }) {
   const [email, setEmail] = useState('admin@runway.com');
   const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    fetch('http://127.0.0.1:5000/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setLoading(false);
-        if (data.success) {
-          onLoginSuccess(data.user);
-        } else {
-          setError(data.message || 'Invalid credentials. Please try again.');
-        }
-      })
-      .catch(err => {
-        setLoading(false);
-        setError('Cannot connect to backend server. Ensure Flask server is running.');
-      });
+    const result = onLogin(email, password);
+    if (!result.success) {
+      setError(result.message);
+    }
   };
 
   return (
@@ -77,8 +62,8 @@ export default function Login({ onLoginSuccess }) {
             />
           </div>
 
-          <button type="submit" className="btn-couture btn-primary-couture" style={{ width: '100%', marginTop: '8px' }} disabled={loading}>
-            {loading ? 'AUTHENTICATING...' : 'SIGN IN'}
+          <button type="submit" className="btn-couture btn-primary-couture" style={{ width: '100%', marginTop: '8px' }}>
+            SIGN IN
           </button>
         </form>
       </div>
