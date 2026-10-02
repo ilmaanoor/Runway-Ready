@@ -53,7 +53,7 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
   });
 
   // 3. Physical Seating Protocol Alerts count
-  const protocolAlerts = warningLogs.filter(w => w.type === 'separation_alert').length;
+  const protocolAlerts = warningLogs.filter(w => w.type === 'separation_alert' || w.type === 'brand_clash').length;
   const tierMismatches = warningLogs.filter(w => w.type === 'tier_mismatch').length;
   const capacityIssues = warningLogs.filter(w => w.type === 'capacity_full').length;
 
@@ -197,13 +197,13 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
                     <tbody>
                       {warningLogs.map((w, idx) => {
                         const typeLabel =
-                          w.type === 'separation_alert' ? 'Separation Protocol' :
+                          (w.type === 'separation_alert' || w.type === 'brand_clash') ? 'Separation Protocol' :
                           w.type === 'tier_mismatch'    ? 'Tier Mismatch' :
                           w.type === 'capacity_full'    ? 'Capacity Exceeded' :
                           w.type.replace(/_/g, ' ').toUpperCase();
 
                         const pillClass =
-                          w.type === 'separation_alert' ? 'vip' :
+                          (w.type === 'separation_alert' || w.type === 'brand_clash') ? 'vip' :
                           w.type === 'tier_mismatch'    ? 'buyer' :
                           'general';
 
