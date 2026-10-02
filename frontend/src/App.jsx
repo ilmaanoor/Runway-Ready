@@ -52,7 +52,6 @@ const INITIAL_EVENTS = [
 ];
 
 // INITIAL_SECTIONS: capacities are proportional to each event total capacity
-// Event 1 = 200 seats, Event 2 = 150 seats, Event 3 = 500 (virtual)
 // Distribution: VIP 20%, Press 20%, Buyer 25%, General 35%
 const INITIAL_SECTIONS = [
   // Sections for Event 1 (Physical, capacity=200)
@@ -242,7 +241,7 @@ export default function App() {
   const eventGuests = guests.filter(g => selectedEvent && g.eventId === selectedEvent.id);
   const eventSections = sections.filter(s => selectedEvent && s.eventId === selectedEvent.id);
   const eventAssignments = seatAssignments.filter(a => {
-    const guest = guests.find(g => g.id === a.guestId);
+    const guest = guests.find(g => g.id === a.guestId || g.id === a.guest_id);
     return guest && selectedEvent && guest.eventId === selectedEvent.id;
   });
 
@@ -281,12 +280,12 @@ export default function App() {
     }
 
     // Check brand separation rules with neighbors
-    const leftNeighbor = seatAssignments.find(a => a.sectionId === sectionId && a.position === position - 1);
-    const rightNeighbor = seatAssignments.find(a => a.sectionId === sectionId && a.position === position + 1);
+    const leftNeighbor = seatAssignments.find(a => (a.sectionId === sectionId || a.section_id === sectionId) && a.position === position - 1);
+    const rightNeighbor = seatAssignments.find(a => (a.sectionId === sectionId || a.section_id === sectionId) && a.position === position + 1);
 
     const checkClash = (neighborAssign) => {
       if (!neighborAssign) return null;
-      const neighborGuest = guests.find(g => g.id === neighborAssign.guestId);
+      const neighborGuest = guests.find(g => g.id === (neighborAssign.guestId || neighborAssign.guest_id));
       if (!neighborGuest || !neighborGuest.brand || !guest.brand) return null;
 
       const isSeparated = separationRules.some(r =>
@@ -316,11 +315,13 @@ export default function App() {
 
     // Update assignment list
     setSeatAssignments(prev => {
-      const filtered = prev.filter(a => a.guestId !== guestId && !(a.sectionId === sectionId && a.position === position));
+      const filtered = prev.filter(a => (a.guestId !== guestId && a.guest_id !== guestId) && !((a.sectionId === sectionId || a.section_id === sectionId) && a.position === position));
       return [...filtered, {
         id: prev.length > 0 ? Math.max(...prev.map(a => a.id)) + 1 : 1,
         guestId: guestId,
+        guest_id: guestId,
         sectionId: sectionId,
+        section_id: sectionId,
         position: position
       }];
     });
@@ -334,16 +335,22 @@ export default function App() {
   
   // 1. Delete Seat Assignment
   const handleUnassignSeat = (guestId) => {
-    setSeatAssignments(prev => prev.filter(a => a.guestId !== guestId));
+    setSeatAssignments(prev => prev.filter(a => a.guestId !== guestId && a.guest_id !== guestId));
   };
 
-  // 2. Delete Event (Cascade removes related guests, sections, assignments)
+  // 2. Delete Guest
+  const handleDeleteGuest = (guestId) => {
+    setGuests(prev => prev.filter(g => g.id !== guestId));
+    setSeatAssignments(prev => prev.filter(a => a.guestId !== guestId && a.guest_id !== guestId));
+  };
+
+  // 3. Delete Event (Cascade removes related guests, sections, assignments)
   const handleDeleteEvent = (eventId) => {
     setEvents(prev => prev.filter(e => e.id !== eventId));
     setGuests(prev => prev.filter(g => g.eventId !== eventId));
     setSections(prev => prev.filter(s => s.eventId !== eventId));
     setSeatAssignments(prev => prev.filter(a => {
-      const g = guests.find(guest => guest.id === a.guestId);
+      const g = guests.find(guest => guest.id === a.guestId || guest.id === a.guest_id);
       return g && g.eventId !== eventId;
     }));
     if (selectedEvent && selectedEvent.id === eventId) {
@@ -352,12 +359,12 @@ export default function App() {
     }
   };
 
-  // 3. Delete Separation Rule
+  // 4. Delete Separation Rule
   const handleDeleteSeparationRule = (ruleId) => {
     setSeparationRules(prev => prev.filter(r => r.id !== ruleId));
   };
 
-  // 4. Delete User
+  // 5. Delete User
   const handleDeleteUser = (userId) => {
     setUsers(prev => prev.filter(u => u.id !== userId));
   };
@@ -377,6 +384,7 @@ export default function App() {
         setActivePage={setActivePage}
         onLogout={handleLogout}
         events={events}
+        eventsList={events}
         selectedEvent={selectedEvent}
         setSelectedEvent={setSelectedEvent}
       />
@@ -384,14 +392,18 @@ export default function App() {
       <main className="main-content">
         {activePage === 'dashboard' && (
           <Dashboard 
+            currentUser={currentUser}
             events={events}
             selectedEvent={selectedEvent}
             setSelectedEvent={setSelectedEvent}
+            activeSelectedEvent={selectedEvent}
+            onSelectEvent={(ev) => { setSelectedEvent(ev); setActivePage('seating'); }}
+            onAddEvent={handleCreateEvent}
+            onCreateEvent={handleCreateEvent}
+            onDeleteEvent={handleDeleteEvent}
             guests={guests}
             sections={sections}
             seatAssignments={seatAssignments}
-            onCreateEvent={handleCreateEvent}
-            onDeleteEvent={handleDeleteEvent}
             setActivePage={setActivePage}
           />
         )}
@@ -403,6 +415,8 @@ export default function App() {
             sections={eventSections}
             seatAssignments={eventAssignments}
             onAddGuest={handleAddGuest}
+            onDeleteGuest={handleDeleteGuest}
+            onToggleCheckin={handleToggleCheckIn}
             onToggleCheckIn={handleToggleCheckIn}
             onAssignSeat={handleAssignSeat}
             onUnassignSeat={handleUnassignSeat}
@@ -414,6 +428,7 @@ export default function App() {
             selectedEvent={selectedEvent}
             guests={eventGuests}
             sections={eventSections}
+            assignments={eventAssignments}
             seatAssignments={eventAssignments}
             separationRules={separationRules}
             onAssignSeat={handleAssignSeat}
@@ -427,6 +442,7 @@ export default function App() {
             selectedEvent={selectedEvent}
             guests={eventGuests}
             sections={eventSections}
+            assignments={eventAssignments}
             seatAssignments={eventAssignments}
             warningLogs={warningLogs}
           />
@@ -439,8 +455,9 @@ export default function App() {
             onAddUser={handleAddUser}
             onDeleteUser={handleDeleteUser}
             separationRules={separationRules}
-            onAddRule={handleAddSeparationRule}
-            onDeleteRule={handleDeleteSeparationRule}
+            onAddSeparationRule={handleAddSeparationRule}
+            onDeleteSeparationRule={handleDeleteSeparationRule}
+            sections={sections}
             warningLogs={warningLogs}
           />
         )}
