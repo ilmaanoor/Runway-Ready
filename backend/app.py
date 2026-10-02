@@ -285,7 +285,7 @@ def add_event():
 
 @app.route('/api/events/<path:event_id>', methods=['DELETE', 'POST'])
 def delete_event(event_id):
-    name = (request.form.get('name') or request.values.get('name') or '').strip()
+    name = (request.form.get('name') or request.values.get('name') or request.args.get('name') or '').strip()
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -293,14 +293,20 @@ def delete_event(event_id):
     except:
         eid = -1
 
-    cursor.execute('''
-        DELETE FROM seat_assignments 
-        WHERE guest_id IN (SELECT id FROM guests WHERE event_id = ? OR event_id IN (SELECT id FROM events WHERE name = ?))
-    ''', (eid, name))
-    cursor.execute('DELETE FROM warning_log WHERE event_id = ? OR event_id IN (SELECT id FROM events WHERE name = ?)', (eid, name))
-    cursor.execute('DELETE FROM guests WHERE event_id = ? OR event_id IN (SELECT id FROM events WHERE name = ?)', (eid, name))
-    cursor.execute('DELETE FROM sections WHERE event_id = ? OR event_id IN (SELECT id FROM events WHERE name = ?)', (eid, name))
-    cursor.execute('DELETE FROM events WHERE id = ? OR name = ?', (eid, name))
+    if eid > 0:
+        cursor.execute('DELETE FROM seat_assignments WHERE guest_id IN (SELECT id FROM guests WHERE event_id = ?)', (eid,))
+        cursor.execute('DELETE FROM warning_log WHERE event_id = ?', (eid,))
+        cursor.execute('DELETE FROM guests WHERE event_id = ?', (eid,))
+        cursor.execute('DELETE FROM sections WHERE event_id = ?', (eid,))
+        cursor.execute('DELETE FROM events WHERE id = ?', (eid,))
+
+    if name:
+        cursor.execute('DELETE FROM seat_assignments WHERE guest_id IN (SELECT id FROM guests WHERE event_id IN (SELECT id FROM events WHERE name = ?))', (name,))
+        cursor.execute('DELETE FROM warning_log WHERE event_id IN (SELECT id FROM events WHERE name = ?)', (name,))
+        cursor.execute('DELETE FROM guests WHERE event_id IN (SELECT id FROM events WHERE name = ?)', (name,))
+        cursor.execute('DELETE FROM sections WHERE event_id IN (SELECT id FROM events WHERE name = ?)', (name,))
+        cursor.execute('DELETE FROM events WHERE name = ?', (name,))
+
     conn.commit()
     conn.close()
     sync_scratch_db()

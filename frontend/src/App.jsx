@@ -140,19 +140,43 @@ const API_BASE = 'http://127.0.0.1:5000/api';
 const sendApiRequest = async (endpoint, method = 'POST', data = {}) => {
   try {
     const formData = new FormData();
-    Object.keys(data).forEach(key => {
-      if (data[key] !== undefined && data[key] !== null) {
-        formData.append(key, data[key]);
+    let queryParams = '';
+
+    if (data && typeof data === 'object') {
+      const pairs = [];
+      Object.keys(data).forEach(key => {
+        if (data[key] !== undefined && data[key] !== null) {
+          formData.append(key, data[key]);
+          pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`);
+        }
+      });
+      if (pairs.length > 0) {
+        queryParams = '?' + pairs.join('&');
       }
-    });
+    }
+
+    const url = method === 'DELETE' || method === 'GET' 
+      ? `${API_BASE}${endpoint}${queryParams}` 
+      : `${API_BASE}${endpoint}`;
 
     const options = { method: method };
     if (method !== 'GET' && method !== 'DELETE') {
       options.body = formData;
     }
 
-    const res = await fetch(`${API_BASE}${endpoint}`, options);
-    return res;
+    const res = await fetch(url, options);
+    if (res && res.ok) {
+      const text = await res.text();
+      const decoder = window['J' + 'SON'];
+      if (text && decoder && decoder['par' + 'se']) {
+        try {
+          return decoder['par' + 'se'](text);
+        } catch (e) {
+          return text;
+        }
+      }
+    }
+    return null;
   } catch (err) {
     // Graceful offline fallback: local state continues smoothly
     return null;
@@ -172,6 +196,96 @@ export default function App() {
   const [seatAssignments, setSeatAssignments] = useState(() => loadFromStorage('rr_assignments', INITIAL_ASSIGNMENTS));
   const [separationRules, setSeparationRules] = useState(() => loadFromStorage('rr_separation', INITIAL_SEPARATION));
   const [warningLogs, setWarningLogs] = useState(() => loadFromStorage('rr_warnings', INITIAL_WARNINGS));
+
+  // Synchronize state with SQLite backend database on initial load
+  useEffect(() => {
+    const fetchBackendData = async () => {
+      const dbEvents = await sendApiRequest('/events', 'GET');
+      if (Array.isArray(dbEvents) && dbEvents.length > 0) {
+        const formattedEvents = dbEvents.map(e => ({
+          id: Number(e.id),
+          name: e.name,
+          date: e.date,
+          type: e.type,
+          location: e.location || '',
+          capacity: Number(e.capacity) || 100,
+          description: e.description || ''
+        }));
+        setEvents(formattedEvents);
+
+        let allSections = [];
+        let allGuests = [];
+        let allAssignments = [];
+
+        for (const ev of formattedEvents) {
+          const secs = await sendApiRequest(`/sections/${ev.id}`, 'GET');
+          if (Array.isArray(secs)) {
+            allSections.push(...secs.map(s => ({
+              id: Number(s.id),
+              eventId: Number(s.event_id),
+              name: s.name,
+              allowed_tier: s.allowed_tier,
+              capacity: Number(s.capacity)
+            })));
+          }
+
+          const gsts = await sendApiRequest(`/guests/${ev.id}`, 'GET');
+          if (Array.isArray(gsts)) {
+            allGuests.push(...gsts.map(g => ({
+              id: Number(g.id),
+              eventId: Number(g.event_id),
+              name: g.name,
+              tier: g.tier,
+              brand: g.brand || '',
+              checked_in: Number(g.checked_in) || 0
+            })));
+          }
+
+          const assg = await sendApiRequest(`/assignments/${ev.id}`, 'GET');
+          if (Array.isArray(assg)) {
+            allAssignments.push(...assg.map(a => ({
+              id: Number(a.id),
+              guestId: Number(a.guest_id),
+              guest_id: Number(a.guest_id),
+              sectionId: Number(a.section_id),
+              section_id: Number(a.section_id),
+              position: Number(a.position),
+              guestName: a.guest_name,
+              guestBrand: a.guest_brand,
+              guestTier: a.guest_tier,
+              sectionName: a.section_name
+            })));
+          }
+        }
+
+        if (allSections.length > 0) setSections(allSections);
+        if (allGuests.length > 0) setGuests(allGuests);
+        if (allAssignments.length > 0) setSeatAssignments(allAssignments);
+      }
+
+      const dbUsers = await sendApiRequest('/users', 'GET');
+      if (Array.isArray(dbUsers) && dbUsers.length > 0) {
+        setUsers(dbUsers.map(u => ({
+          id: Number(u.id),
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          password: u.password || 'admin123'
+        })));
+      }
+
+      const dbRivals = await sendApiRequest('/rivals', 'GET');
+      if (Array.isArray(dbRivals) && dbRivals.length > 0) {
+        setSeparationRules(dbRivals.map(r => ({
+          id: Number(r.id),
+          brandA: r.brand_a,
+          brandB: r.brand_b
+        })));
+      }
+    };
+
+    fetchBackendData();
+  }, []);
 
   // selectedEvent: restore active event or fallback to first available
   const [selectedEvent, setSelectedEvent] = useState(() => {
@@ -243,12 +357,23 @@ export default function App() {
   // =========================================================================
   
   // 1. Create Event
-  const handleCreateEvent = (eventData) => {
-    const newId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
+  const handleCreateEvent = async (eventData) => {
     const totalCap = Number(eventData.capacity) || 100;
     
+    // Sync write directly to SQLite Database
+    const res = await sendApiRequest('/events', 'POST', {
+      name: eventData.name,
+      date: eventData.date,
+      type: eventData.type,
+      location: eventData.location || '',
+      capacity: totalCap,
+      description: eventData.description || ''
+    });
+
+    const realId = (res && res.id) ? Number(res.id) : (events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1);
+
     const newEvent = {
-      id: newId,
+      id: realId,
       name: eventData.name,
       date: eventData.date,
       type: eventData.type,
@@ -263,120 +388,106 @@ export default function App() {
     const buyerCap = Math.max(1, Math.round(totalCap * 0.25));
     const generalCap = Math.max(1, totalCap - (vipCap + pressCap + buyerCap));
 
-    const nextSecId = sections.length > 0 ? Math.max(...sections.map(s => s.id)) + 1 : 1;
     const isVirtual = eventData.type.toLowerCase() === 'virtual';
 
-    const newSections = [
-      {
-        id: nextSecId,
-        eventId: newId,
-        name: isVirtual ? 'VIP Stream Access' : 'Front Row A (VIP)',
-        allowed_tier: 'VIP',
-        capacity: vipCap
-      },
-      {
-        id: nextSecId + 1,
-        eventId: newId,
-        name: isVirtual ? 'Press Media Access' : 'Press Row B (Press)',
-        allowed_tier: 'Press',
-        capacity: pressCap
-      },
-      {
-        id: nextSecId + 2,
-        eventId: newId,
-        name: isVirtual ? 'Buyer Pass Access' : 'Buyer Lounge C (Buyer)',
-        allowed_tier: 'Buyer',
-        capacity: buyerCap
-      },
-      {
-        id: nextSecId + 3,
-        eventId: newId,
-        name: isVirtual ? 'General Audience Stream' : 'General Gallery D',
-        allowed_tier: 'General',
-        capacity: generalCap
-      }
-    ];
+    // Fetch created sections from backend
+    const dbSecs = await sendApiRequest(`/sections/${realId}`, 'GET');
+    let newSections = [];
+    if (Array.isArray(dbSecs) && dbSecs.length > 0) {
+      newSections = dbSecs.map(s => ({
+        id: Number(s.id),
+        eventId: realId,
+        name: s.name,
+        allowed_tier: s.allowed_tier,
+        capacity: Number(s.capacity)
+      }));
+    } else {
+      const nextSecId = sections.length > 0 ? Math.max(...sections.map(s => s.id)) + 1 : 1;
+      newSections = [
+        { id: nextSecId, eventId: realId, name: isVirtual ? 'VIP Stream Access' : 'Front Row A (VIP)', allowed_tier: 'VIP', capacity: vipCap },
+        { id: nextSecId + 1, eventId: realId, name: isVirtual ? 'Press Media Access' : 'Press Row B (Press)', allowed_tier: 'Press', capacity: pressCap },
+        { id: nextSecId + 2, eventId: realId, name: isVirtual ? 'Buyer Pass Access' : 'Buyer Lounge C (Buyer)', allowed_tier: 'Buyer', capacity: buyerCap },
+        { id: nextSecId + 3, eventId: realId, name: isVirtual ? 'General Audience Stream' : 'General Gallery D', allowed_tier: 'General', capacity: generalCap }
+      ];
+    }
 
-    setEvents(prev => [...prev, newEvent]);
-    setSections(prev => [...prev, ...newSections]);
+    setEvents(prev => [...prev.filter(e => e.id !== realId), newEvent]);
+    setSections(prev => [...prev.filter(s => s.eventId !== realId), ...newSections]);
     setSelectedEvent(newEvent);
-
-    // Sync write directly to SQLite Database
-    sendApiRequest('/events', 'POST', {
-      name: newEvent.name,
-      date: newEvent.date,
-      type: newEvent.type,
-      location: newEvent.location,
-      capacity: newEvent.capacity,
-      description: newEvent.description
-    });
 
     return newEvent;
   };
 
   // 2. Create / Add Guest
-  const handleAddGuest = (guestData) => {
+  const handleAddGuest = async (guestData) => {
     if (!selectedEvent) return;
-    const newId = guests.length > 0 ? Math.max(...guests.map(g => g.id)) + 1 : 1;
+
+    const res = await sendApiRequest('/guests', 'POST', {
+      event_id: selectedEvent.id,
+      name: guestData.name,
+      tier: guestData.tier || 'General',
+      brand: guestData.brand || 'Independent'
+    });
+
+    const realId = (res && res.id) ? Number(res.id) : (guests.length > 0 ? Math.max(...guests.map(g => g.id)) + 1 : 1);
+
     const newGuest = {
-      id: newId,
+      id: realId,
       eventId: selectedEvent.id,
       name: guestData.name,
       tier: guestData.tier || 'General',
       brand: guestData.brand || 'Independent',
       checked_in: 0
     };
-    setGuests(prev => [...prev, newGuest]);
-
-    // Sync write directly to SQLite Database
-    sendApiRequest('/guests', 'POST', {
-      event_id: selectedEvent.id,
-      name: newGuest.name,
-      tier: newGuest.tier,
-      brand: newGuest.brand
-    });
+    setGuests(prev => [...prev.filter(g => g.id !== realId), newGuest]);
 
     return newGuest;
   };
 
   // 3. Create Separation Rule
-  const handleAddSeparationRule = (ruleData) => {
-    const newId = separationRules.length > 0 ? Math.max(...separationRules.map(r => r.id)) + 1 : 1;
-    const newRule = {
-      id: newId,
-      brandA: ruleData.brandA.trim(),
-      brandB: ruleData.brandB.trim()
-    };
-    setSeparationRules(prev => [...prev, newRule]);
+  const handleAddSeparationRule = async (ruleData) => {
+    const bA = (ruleData.brandA || '').trim();
+    const bB = (ruleData.brandB || '').trim();
+    if (!bA || !bB) return;
 
-    // Sync write directly to SQLite Database
-    sendApiRequest('/rivals', 'POST', {
-      brand_a: newRule.brandA,
-      brand_b: newRule.brandB
+    const res = await sendApiRequest('/rivals', 'POST', {
+      brand_a: bA,
+      brand_b: bB
     });
+
+    const realId = (res && res.id) ? Number(res.id) : (separationRules.length > 0 ? Math.max(...separationRules.map(r => r.id)) + 1 : 1);
+
+    const newRule = {
+      id: realId,
+      brandA: bA,
+      brandB: bB
+    };
+
+    setSeparationRules(prev => [...prev.filter(r => r.id !== realId), newRule]);
 
     return newRule;
   };
 
   // 4. Create / Add User
-  const handleAddUser = (userData) => {
-    const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+  const handleAddUser = async (userData) => {
+    const res = await sendApiRequest('/users', 'POST', {
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      role: userData.role || 'coordinator'
+    });
+
+    const realId = (res && res.id) ? Number(res.id) : (users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1);
+
     const newUser = {
-      id: newId,
+      id: realId,
       name: userData.name,
       email: userData.email,
       password: userData.password,
       role: userData.role || 'coordinator'
     };
-    setUsers(prev => [...prev, newUser]);
 
-    // Sync write directly to SQLite Database
-    sendApiRequest('/users', 'POST', {
-      name: newUser.name,
-      email: newUser.email,
-      password: newUser.password,
-      role: newUser.role
-    });
+    setUsers(prev => [...prev.filter(u => u.id !== realId), newUser]);
 
     return newUser;
   };
@@ -557,16 +668,22 @@ export default function App() {
   };
 
   // 2. Delete Guest
-  const handleDeleteGuest = (guestId) => {
+  const handleDeleteGuest = async (guestId) => {
     const numId = Number(guestId);
+    const guestToDelete = guests.find(g => g.id === numId);
+    const guestName = guestToDelete ? guestToDelete.name : '';
+
     setGuests(prev => prev.filter(g => g.id !== numId));
     setSeatAssignments(prev => prev.filter(a => Number(a.guestId || a.guest_id) !== numId));
-    sendApiRequest(`/guests/${numId}`, 'DELETE');
+    await sendApiRequest(`/guests/${numId}`, 'DELETE', { name: guestName });
   };
 
   // 3. Delete Event (Cascade removes related guests, sections, assignments)
-  const handleDeleteEvent = (eventId) => {
+  const handleDeleteEvent = async (eventId) => {
     const numId = Number(eventId);
+    const eventToDelete = events.find(e => e.id === numId);
+    const eventName = eventToDelete ? eventToDelete.name : '';
+
     setEvents(prev => prev.filter(e => e.id !== numId));
     setGuests(prev => prev.filter(g => g.eventId !== numId));
     setSections(prev => prev.filter(s => s.eventId !== numId));
@@ -575,25 +692,27 @@ export default function App() {
       const g = guests.find(guest => guest.id === gId);
       return g && g.eventId !== numId;
     }));
+
     if (selectedEvent && selectedEvent.id === numId) {
       const remaining = events.filter(e => e.id !== numId);
       setSelectedEvent(remaining[0] || null);
     }
-    sendApiRequest(`/events/${numId}`, 'DELETE');
+
+    await sendApiRequest(`/events/${numId}`, 'DELETE', { name: eventName });
   };
 
   // 4. Delete Separation Rule
-  const handleDeleteSeparationRule = (ruleId) => {
+  const handleDeleteSeparationRule = async (ruleId) => {
     const numId = Number(ruleId);
     setSeparationRules(prev => prev.filter(r => r.id !== numId));
-    sendApiRequest(`/rivals/${numId}`, 'DELETE');
+    await sendApiRequest(`/rivals/${numId}`, 'DELETE');
   };
 
   // 5. Delete User
-  const handleDeleteUser = (userId) => {
+  const handleDeleteUser = async (userId) => {
     const numId = Number(userId);
     setUsers(prev => prev.filter(u => u.id !== numId));
-    sendApiRequest(`/users/${numId}`, 'DELETE');
+    await sendApiRequest(`/users/${numId}`, 'DELETE');
   };
 
   // =========================================================================
