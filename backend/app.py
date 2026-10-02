@@ -190,7 +190,7 @@ def login():
 @app.route('/api/users', methods=['GET'])
 def get_users():
     conn = get_db_connection()
-    users = conn.execute('SELECT id, name, email, role FROM users').fetchall()
+    users = conn.execute('SELECT id, name, email, password, role FROM users').fetchall()
     conn.close()
     return [dict(u) for u in users]
 

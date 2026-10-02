@@ -270,7 +270,7 @@ export default function App() {
           name: u.name,
           email: u.email,
           role: u.role,
-          password: u.password || 'admin123'
+          password: u.password || (u.role === 'admin' ? 'admin123' : 'staff123')
         })));
       }
 
