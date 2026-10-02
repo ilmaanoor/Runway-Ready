@@ -11,6 +11,8 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [copiedGuestId, setCopiedGuestId] = useState(null);
+  const [joiningMeet, setJoiningMeet] = useState(false);
+  const [joinStep, setJoinStep] = useState(0);
 
   if (!selectedEvent) {
     return (
@@ -122,6 +124,15 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
     } else {
       alert(`Invite Pass for ${guestName}:\n\n${inviteText}`);
     }
+  };
+
+  // Handle Join Meeting — in-app joining screen (no external redirect)
+  const handleJoinMeeting = () => {
+    setJoiningMeet(true);
+    setJoinStep(1);
+    setTimeout(() => setJoinStep(2), 1500);
+    setTimeout(() => setJoinStep(3), 3000);
+    setTimeout(() => setJoinStep(4), 4500);
   };
 
   return (
@@ -325,7 +336,76 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
         /* ================= VIRTUAL DIGITAL ACCESS TIERS VIEW ================= */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Top Live Zoom Broadcast Card — ONLY ONE Single Launch Button & Direct Credentials */}
+          {/* ===== IN-APP JOINING SCREEN OVERLAY ===== */}
+          {joiningMeet && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.88)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 9999, flexDirection: 'column', gap: '24px'
+            }}>
+              {/* Spinning loader */}
+              <div style={{
+                width: '72px', height: '72px', borderRadius: '50%',
+                border: '5px solid rgba(255,255,255,0.15)',
+                borderTopColor: '#38bdf8',
+                animation: 'spin 1s linear infinite'
+              }} />
+
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#ffffff', fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', marginBottom: '8px' }}>
+                  {selectedEvent.name}
+                </div>
+                <div style={{ color: '#38bdf8', fontSize: '0.9rem', fontWeight: '600', letterSpacing: '1px', marginBottom: '24px' }}>
+                  {joinStep === 1 && '🔌 Connecting to meeting...'}
+                  {joinStep === 2 && '🔑 Authenticating your access pass...'}
+                  {joinStep === 3 && '🎥 Loading video stream...'}
+                  {joinStep === 4 && '✅ You have joined the meeting!'}
+                </div>
+
+                {/* Step dots */}
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '24px' }}>
+                  {[1,2,3,4].map(s => (
+                    <div key={s} style={{
+                      width: '10px', height: '10px', borderRadius: '50%',
+                      background: joinStep >= s ? '#38bdf8' : 'rgba(255,255,255,0.2)',
+                      transition: 'background 0.4s ease'
+                    }} />
+                  ))}
+                </div>
+
+                {/* Meeting info card */}
+                <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '8px', padding: '16px 24px', marginBottom: '20px', textAlign: 'left' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Meeting Details</div>
+                  <div style={{ color: '#ffffff', fontSize: '0.85rem', marginBottom: '4px' }}>📋 ID: <strong>{streamDetails.meetingId}</strong></div>
+                  <div style={{ color: '#ffffff', fontSize: '0.85rem', marginBottom: '4px' }}>🔒 Passcode: <strong>{streamDetails.passcode}</strong></div>
+                  <div style={{ color: '#38bdf8', fontSize: '0.82rem' }}>🔗 {streamDetails.url}</div>
+                </div>
+
+                {/* Close button — only show after fully joined */}
+                {joinStep === 4 && (
+                  <button
+                    onClick={() => { setJoiningMeet(false); setJoinStep(0); }}
+                    style={{ background: '#38bdf8', color: '#000000', border: 'none', padding: '10px 28px', borderRadius: '4px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer' }}
+                  >
+                    Leave Meeting
+                  </button>
+                )}
+                {joinStep < 4 && (
+                  <button
+                    onClick={() => { setJoiningMeet(false); setJoinStep(0); }}
+                    style={{ background: 'transparent', color: '#64748b', border: '1px solid #334155', padding: '8px 20px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Top Live Zoom Broadcast Card */}
           <div className="virtual-stream-banner-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
@@ -343,15 +423,13 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
               </div>
 
               <div>
-                <a 
-                  href={streamUrl} 
-                  target="_blank" 
-                  rel="noreferrer"
+                <button
+                  onClick={handleJoinMeeting}
                   className="btn-couture btn-primary-couture"
-                  style={{ background: '#ffffff', color: '#000000', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 22px', fontWeight: '700', borderRadius: '4px', fontSize: '0.88rem' }}
+                  style={{ background: '#ffffff', color: '#000000', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 22px', fontWeight: '700', borderRadius: '4px', fontSize: '0.88rem', cursor: 'pointer' }}
                 >
-                  🎥 Join Zoom Meeting ↗
-                </a>
+                  🎥 Join Meeting
+                </button>
               </div>
             </div>
           </div>
@@ -360,6 +438,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
           <div style={{ background: '#f8fafc', borderLeft: '4px solid #0284c7', padding: '12px 16px', fontSize: '0.82rem', color: '#334155', borderRadius: '0 4px 4px 0' }}>
             <strong>💡 How Guests Access the Meeting:</strong> Click <strong>"📋 Copy Invite"</strong> on any issued pass below to copy the guest's verified pass token, Zoom meeting ID (<code>{streamDetails.meetingId}</code>), and passcode (<code>{streamDetails.passcode}</code>).
           </div>
+
 
           {/* Virtual Pass Management Split Layout */}
           <div className="seating-split-layout">
