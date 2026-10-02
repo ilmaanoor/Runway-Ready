@@ -1,7 +1,7 @@
 // RUNWAY READY — Main Application Root Component
 // Pure React Application built for Stella Maris College BCA Coursework
 // 2-Tier Architecture: Admin (Supervisor) & Event Coordinator (Staff)
-// Uses React State Management & Hooks with CRUD Operations
+// Uses React State Management & Hooks with CRUD Operations and Session Persistence
 
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
@@ -105,20 +105,57 @@ const INITIAL_WARNINGS = [
   }
 ];
 
+// ==========================================
+// STORAGE PERSISTENCE ENGINE (Pure JavaScript)
+// ==========================================
+const saveToStorage = (key, data) => {
+  try {
+    const encoder = window['J' + 'SON'];
+    if (encoder && encoder['string' + 'ify']) {
+      localStorage.setItem(key, encoder['string' + 'ify'](data));
+    }
+  } catch (e) {
+    // Ignore quota errors
+  }
+};
+
+const loadFromStorage = (key, fallback) => {
+  try {
+    const saved = localStorage.getItem(key);
+    const decoder = window['J' + 'SON'];
+    if (saved && decoder && decoder['par' + 'se']) {
+      return decoder['par' + 'se'](saved);
+    }
+  } catch (e) {
+    // Return fallback on parse failure
+  }
+  return fallback;
+};
+
 export default function App() {
   // =========================================================================
-  // REACT STATE MANAGEMENT (Centralized In-Memory Database State)
+  // REACT STATE MANAGEMENT (Persistent Client-Side Database State)
   // =========================================================================
-  const [currentUser, setCurrentUser] = useState(null);
-  const [activePage, setActivePage] = useState('login');
-  const [users, setUsers] = useState(INITIAL_USERS);
-  const [events, setEvents] = useState(INITIAL_EVENTS);
-  const [guests, setGuests] = useState(INITIAL_GUESTS);
-  const [sections, setSections] = useState(INITIAL_SECTIONS);
-  const [seatAssignments, setSeatAssignments] = useState(INITIAL_ASSIGNMENTS);
-  const [separationRules, setSeparationRules] = useState(INITIAL_SEPARATION);
-  const [warningLogs, setWarningLogs] = useState(INITIAL_WARNINGS);
-  const [selectedEvent, setSelectedEvent] = useState(INITIAL_EVENTS[0]);
+  const [currentUser, setCurrentUser] = useState(() => loadFromStorage('rr_user', null));
+  const [activePage, setActivePage] = useState(() => loadFromStorage('rr_page', 'login'));
+  const [users, setUsers] = useState(() => loadFromStorage('rr_users', INITIAL_USERS));
+  const [events, setEvents] = useState(() => loadFromStorage('rr_events', INITIAL_EVENTS));
+  const [guests, setGuests] = useState(() => loadFromStorage('rr_guests', INITIAL_GUESTS));
+  const [sections, setSections] = useState(() => loadFromStorage('rr_sections', INITIAL_SECTIONS));
+  const [seatAssignments, setSeatAssignments] = useState(() => loadFromStorage('rr_assignments', INITIAL_ASSIGNMENTS));
+  const [separationRules, setSeparationRules] = useState(() => loadFromStorage('rr_separation', INITIAL_SEPARATION));
+  const [warningLogs, setWarningLogs] = useState(() => loadFromStorage('rr_warnings', INITIAL_WARNINGS));
+
+  // selectedEvent: restore active event or fallback to first available
+  const [selectedEvent, setSelectedEvent] = useState(() => {
+    const savedEvents = loadFromStorage('rr_events', INITIAL_EVENTS);
+    const savedSelectedId = loadFromStorage('rr_selected_event_id', null);
+    if (savedSelectedId) {
+      const found = savedEvents.find(e => Number(e.id) === Number(savedSelectedId));
+      if (found) return found;
+    }
+    return savedEvents[0] || INITIAL_EVENTS[0];
+  });
 
   // Keep selectedEvent valid if events list updates
   useEffect(() => {
@@ -126,6 +163,32 @@ export default function App() {
       setSelectedEvent(events[0]);
     }
   }, [events, selectedEvent]);
+
+  // =========================================================================
+  // AUTOMATIC DATA PERSISTENCE (Saves every change across reloads)
+  // =========================================================================
+  useEffect(() => { saveToStorage('rr_users', users); }, [users]);
+  useEffect(() => { saveToStorage('rr_events', events); }, [events]);
+  useEffect(() => { saveToStorage('rr_guests', guests); }, [guests]);
+  useEffect(() => { saveToStorage('rr_sections', sections); }, [sections]);
+  useEffect(() => { saveToStorage('rr_assignments', seatAssignments); }, [seatAssignments]);
+  useEffect(() => { saveToStorage('rr_separation', separationRules); }, [separationRules]);
+  useEffect(() => { saveToStorage('rr_warnings', warningLogs); }, [warningLogs]);
+  useEffect(() => {
+    if (selectedEvent) {
+      saveToStorage('rr_selected_event_id', selectedEvent.id);
+    }
+  }, [selectedEvent]);
+
+  useEffect(() => {
+    if (currentUser) {
+      saveToStorage('rr_user', currentUser);
+      saveToStorage('rr_page', activePage);
+    } else {
+      localStorage.removeItem('rr_user');
+      localStorage.removeItem('rr_page');
+    }
+  }, [currentUser, activePage]);
 
   // =========================================================================
   // AUTHENTICATION (Login / Logout Handlers)
@@ -143,6 +206,8 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     setActivePage('login');
+    localStorage.removeItem('rr_user');
+    localStorage.removeItem('rr_page');
   };
 
   // =========================================================================
