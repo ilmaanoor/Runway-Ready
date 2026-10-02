@@ -36,7 +36,7 @@ export default function Navbar({ currentUser, activePage, setActivePage, eventsL
             className={`nav-tab ${activePage === 'seating' ? 'active' : ''}`}
             onClick={() => setActivePage('seating')}
           >
-            Seating Page
+            {selectedEvent && selectedEvent.type === 'Virtual' ? 'Digital Passes' : 'Seating Page'}
           </button>
           
           {currentUser.role === 'admin' && (

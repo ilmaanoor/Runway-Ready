@@ -24,9 +24,9 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const isPhysical = selectedEvent.type === 'Physical';
   const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
 
-  // Helper: Detect if an assigned seat has an adjacent brand separation conflict
+  // Helper: Detect if an assigned seat has an adjacent brand separation conflict (Physical only)
   const isSeatInConflict = (sectionId, position, assignedGuestBrand) => {
-    if (!assignedGuestBrand || !separationRules || separationRules.length === 0) return false;
+    if (!isPhysical || !assignedGuestBrand || !separationRules || separationRules.length === 0) return false;
     const brandLower = assignedGuestBrand.trim().toLowerCase();
 
     const adjacent = assignments.filter(a =>
@@ -44,7 +44,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
     });
   };
 
-  // Handle Seat Assignment using Pure React State Function
+  // Handle Seat / Pass Assignment using Pure React State Function
   const handleAssign = (guestId, sectionId, position) => {
     if (!guestId || !sectionId) return;
 
@@ -55,7 +55,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
     const res = onAssignSeat(guestId, sectionId, position);
     if (res.success) {
       setSuccessMessage(res.message);
-      if (res.warnings && res.warnings.length > 0) {
+      if (res.warnings && res.warnings.length > 0 && isPhysical) {
         setWarnings(res.warnings);
       }
       setSelectedGuestId(null);
@@ -67,12 +67,14 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   return (
     <div className="page-wrapper">
       <div className="page-header-editorial">
-        <span className="section-kicker">SEATING & ACCESS RULE-ENGINE</span>
+        <span className="section-kicker">
+          {isPhysical ? 'SEATING & ACCESS RULE-ENGINE' : 'DIGITAL LIVESTREAM & ACCESS ROSTER'}
+        </span>
         <h1 className="page-title">
-          {isPhysical ? 'Physical Seating Grid' : 'Virtual Access Tiers'}
+          {isPhysical ? 'Physical Seating Grid' : 'Virtual Access Tiers & Passes'}
         </h1>
         <p className="page-description">
-          Event: <strong>{selectedEvent.name}</strong> | Type: <strong>{selectedEvent.type}</strong>
+          Event: <strong>{selectedEvent.name}</strong> | Format: <strong>{selectedEvent.type}</strong>
         </p>
       </div>
 
@@ -83,8 +85,8 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
         </div>
       )}
 
-      {/* Seating Separation Protocol Advisory Banner */}
-      {warnings.length > 0 && (
+      {/* Seating Separation Protocol Advisory Banner (Physical only) */}
+      {isPhysical && warnings.length > 0 && (
         <div className="seating-rival-banner">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', letterSpacing: '0.5px' }}>
             <span>⚠️</span> SEATING SEPARATION PROTOCOL ADVISORY
@@ -105,7 +107,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
       )}
 
       {isPhysical ? (
-        /* PHYSICAL RUNWAY VIEW (25% Left Sidebar + 75% Runway Canvas) */
+        /* ================= PHYSICAL RUNWAY CATWALK VIEW ================= */
         <div className="seating-split-layout">
           {/* Left Sidebar: Unassigned Guest Pool */}
           <div className="unassigned-sidebar">
@@ -149,7 +151,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                   <div className="form-group-editorial" style={{ marginTop: '8px' }}>
                     <label>Section ({selectedGuest ? selectedGuest.tier : ''} only)</label>
                     <select 
-                      className="input-editorial"
+                      className="input-editorial" 
                       value={selectedSectionId}
                       onChange={e => setSelectedSectionId(e.target.value)}
                     >
@@ -167,7 +169,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                       value={selectedPosition} 
                       onChange={e => setSelectedPosition(e.target.value)}
                       min="1"
-                      max="20"
+                      max="100"
                     />
                   </div>
                   <button 
@@ -186,6 +188,8 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
               <img src={editorPortraitImg} alt="Fashion Editor Portrait" className="sidebar-editorial-img" />
             </div>
           </div>
+
+          {/* Main Runway Catwalk Canvas */}
           <div className="runway-main-canvas">
             {/* Wide Banner */}
             <div className="runway-banner-container">
@@ -203,7 +207,6 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
               const secAssignments = assignments.filter(a => a.sectionId === sec.id);
               return (
                 <div key={sec.id} className="seat-row-block">
-                  {/* Show section name only (it already contains the tier) — seats filled / total */}
                   <h4 className="section-block-title">
                     {sec.name} — Seats: {secAssignments.length} / {sec.capacity}
                   </h4>
@@ -226,8 +229,6 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                             if (assigned) {
                               onUnassignSeat(assigned.guestId);
                             } else {
-                              // If a guest is selected in sidebar, assign that guest
-                              // Otherwise, find the next unassigned guest matching this section's tier
                               const matchingUnassigned = unassignedGuests.filter(g => g.tier === sec.allowed_tier);
                               const guestToAssign = selectedGuestId || (matchingUnassigned[0] ? matchingUnassigned[0].id : null);
                               
@@ -261,43 +262,173 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
           </div>
         </div>
       ) : (
-        /* VIRTUAL EVENT VIEW (3 Access Column Cards) */
-        <div className="virtual-three-columns">
-          {sections.map(sec => {
-            const secAssignments = assignments.filter(a => a.sectionId === sec.id);
-            const capacityPct = Math.round((secAssignments.length / sec.capacity) * 100);
-            return (
-              <div key={sec.id} className="virtual-column-card">
-                <h3 className="virtual-column-title">{sec.name}</h3>
-                <span className="sidebar-title">Capacity: {secAssignments.length} / {sec.capacity}</span>
-                
-                <div className="capacity-meter-bar">
-                  <div className="capacity-meter-fill" style={{ width: `${Math.min(capacityPct, 100)}%` }}></div>
-                </div>
+        /* ================= VIRTUAL DIGITAL ACCESS TIERS VIEW ================= */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Top Live Broadcast Stream Information Card */}
+          <div className="virtual-stream-banner-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <span className="live-stream-badge">🔴 LIVE BROADCAST STREAM</span>
+                <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', marginTop: '6px' }}>
+                  {selectedEvent.name} — Digital Portal
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: '#555', marginTop: '4px' }}>
+                  Secure Stream URL: <strong style={{ color: '#000' }}>{selectedEvent.location || 'https://live.runway.com/broadcast'}</strong>
+                </p>
+              </div>
 
-                <div className="virtual-guest-list">
-                  {secAssignments.length === 0 ? (
-                    <p style={{ color: '#7d7d7d', fontSize: '0.85rem' }}>No passes issued.</p>
-                  ) : (
-                    secAssignments.map(a => (
-                      <div key={a.id} className="virtual-guest-row">
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <a 
+                  href={selectedEvent.location?.startsWith('http') ? selectedEvent.location : `https://${selectedEvent.location || 'live.runway.com'}`}
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="btn-couture btn-primary-couture"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  Join Stream Portal ↗
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Virtual Pass Management Split Layout */}
+          <div className="seating-split-layout">
+            
+            {/* Left Sidebar: Unassigned Guest Pool to Issue Passes */}
+            <div className="unassigned-sidebar">
+              <h3 className="sidebar-title">Pending Pass Requests ({unassignedGuests.length})</h3>
+              <p style={{ fontSize: '0.75rem', color: '#777', marginBottom: '12px' }}>
+                Select an attendee to issue their digital livestream pass:
+              </p>
+
+              <div className="unassigned-guest-list">
+                {unassignedGuests.length === 0 ? (
+                  <p style={{ fontSize: '0.8rem', color: '#7d7d7d' }}>All guests hold active digital passes!</p>
+                ) : (
+                  unassignedGuests.map(g => {
+                    const matchingSec = sections.find(s => s.allowed_tier === g.tier);
+                    const secAssignments = matchingSec ? assignments.filter(a => a.sectionId === matchingSec.id) : [];
+                    const nextPos = secAssignments.length + 1;
+
+                    return (
+                      <div 
+                        key={g.id} 
+                        className="unassigned-guest-item"
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                      >
                         <div>
-                          <div className="guest-name-bold">{a.guestName}</div>
-                          <div className="guest-brand-uppercase">{a.guestBrand || 'INDEPENDENT'}</div>
+                          <div className="guest-name-bold">{g.name}</div>
+                          <div className="guest-brand-uppercase">
+                            {g.brand ? g.brand.toUpperCase() : 'INDEPENDENT'} • <span className={`tier-pill-minimal ${g.tier.toLowerCase()}`}>{g.tier}</span>
+                          </div>
                         </div>
+
                         <button 
-                          className="btn-delete-minimal" 
-                          onClick={() => onUnassignSeat(a.guestId)}
+                          className="btn-couture btn-secondary-couture"
+                          style={{ fontSize: '0.7rem', padding: '4px 8px' }}
+                          onClick={() => {
+                            if (matchingSec) {
+                              handleAssign(g.id, matchingSec.id, nextPos);
+                            }
+                          }}
                         >
-                          Remove
+                          + Issue Pass
                         </button>
                       </div>
-                    ))
-                  )}
-                </div>
+                    );
+                  })
+                )}
               </div>
-            );
-          })}
+            </div>
+
+            {/* Right Canvas: 4 Digital Access Tier Cards */}
+            <div style={{ flex: 1 }}>
+              <div className="virtual-four-grid">
+                {sections.map(sec => {
+                  const secAssignments = assignments.filter(a => a.sectionId === sec.id);
+                  const capacityPct = Math.round((secAssignments.length / sec.capacity) * 100);
+                  const matchingUnassigned = unassignedGuests.filter(g => g.tier === sec.allowed_tier);
+
+                  return (
+                    <div key={sec.id} className="virtual-column-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span className={`tier-pill-minimal ${sec.allowed_tier.toLowerCase()}`}>
+                          {sec.allowed_tier.toUpperCase()} TIER
+                        </span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#444' }}>
+                          {secAssignments.length} / {sec.capacity} Passes
+                        </span>
+                      </div>
+
+                      <h3 className="virtual-column-title">{sec.name}</h3>
+                      
+                      {/* Live Progress Bar */}
+                      <div className="capacity-meter-bar">
+                        <div 
+                          className="capacity-meter-fill" 
+                          style={{ 
+                            width: `${Math.min(capacityPct, 100)}%`,
+                            background: capacityPct >= 100 ? '#dc2626' : '#111111'
+                          }}
+                        ></div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#777' }}>
+                          Utilization: <strong>{capacityPct}%</strong>
+                        </span>
+
+                        {matchingUnassigned.length > 0 && (
+                          <button
+                            className="btn-couture btn-primary-couture"
+                            style={{ fontSize: '0.68rem', padding: '3px 8px' }}
+                            onClick={() => {
+                              handleAssign(matchingUnassigned[0].id, sec.id, secAssignments.length + 1);
+                            }}
+                          >
+                            + Issue Next Pass
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Issued Pass Holders Roster */}
+                      <div className="virtual-guest-list">
+                        <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                          Active Pass Holders ({secAssignments.length})
+                        </div>
+
+                        {secAssignments.length === 0 ? (
+                          <p style={{ color: '#999', fontSize: '0.8rem', fontStyle: 'italic', padding: '8px 0' }}>
+                            No digital passes issued yet.
+                          </p>
+                        ) : (
+                          secAssignments.map(a => (
+                            <div key={a.id} className="virtual-guest-row">
+                              <div>
+                                <div className="guest-name-bold">{a.guestName}</div>
+                                <div className="guest-brand-uppercase" style={{ fontSize: '0.68rem', color: '#666' }}>
+                                  {a.guestBrand || 'INDEPENDENT'} • <span style={{ color: '#059669', fontWeight: '700' }}>PASS #{a.id.toString().slice(-4)}</span>
+                                </div>
+                              </div>
+                              <button 
+                                className="btn-delete-minimal" 
+                                title="Revoke Pass"
+                                onClick={() => onUnassignSeat(a.guestId)}
+                              >
+                                Revoke
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+          </div>
         </div>
       )}
     </div>
