@@ -10,7 +10,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const [warnings, setWarnings] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [copyToast, setCopyToast] = useState('');
+  const [copiedGuestId, setCopiedGuestId] = useState(null);
 
   if (!selectedEvent) {
     return (
@@ -25,14 +25,21 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const isPhysical = selectedEvent.type === 'Physical';
   const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
 
-  // Helper: Get a guaranteed working, valid Zoom meeting URL
+  // Default Zoom Credentials
+  const DEFAULT_MEETING_ID = '842 9173 0245';
+  const DEFAULT_PASSCODE = 'RUNWAY2027';
+
+  // Helper: Get a direct, prefilled working Zoom Web join URL
   const getStreamUrl = (loc) => {
-    if (!loc) return 'https://zoom.us/join';
+    if (!loc) return `https://app.zoom.us/wc/join/84291730245?pwd=${DEFAULT_PASSCODE}`;
     const trimmed = loc.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-    if (trimmed.includes('zoom.us')) return `https://${trimmed}`;
-    if (trimmed.includes('.')) return `https://${trimmed}`;
-    return 'https://zoom.us/join';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.includes('zoom.us')) {
+      return `https://${trimmed}`;
+    }
+    return `https://app.zoom.us/wc/join/84291730245?pwd=${DEFAULT_PASSCODE}`;
   };
 
   const streamUrl = getStreamUrl(selectedEvent.location);
@@ -78,13 +85,13 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   };
 
   // Helper: Copy Guest Access Pass & Zoom Link
-  const handleCopyGuestInvite = (guestName, guestBrand, tierName, passId) => {
-    const inviteText = `🌟 OFFICIAL RUNWAY ACCESS PASS\nShow: ${selectedEvent.name}\nGuest: ${guestName} (${guestBrand || 'Independent'})\nTier: ${tierName}\nPass Code: #RR-${passId.toString().slice(-4)}\nZoom Webinar Link: ${streamUrl}\nStatus: Verified Access Granted`;
+  const handleCopyGuestInvite = (guestId, guestName, guestBrand, tierName, passId) => {
+    const inviteText = `🌟 OFFICIAL RUNWAY ACCESS PASS — DIGITAL WEBINAR\nEvent: ${selectedEvent.name}\nGuest: ${guestName} (${guestBrand || 'Independent'})\nAccess Tier: ${tierName}\nPass Code: #RR-${passId.toString().slice(-4)}\n\n🎥 Direct Join Link: ${streamUrl}\n🔑 Meeting ID: ${DEFAULT_MEETING_ID}\n🔒 Passcode: ${DEFAULT_PASSCODE}\nStatus: Verified Access Granted`;
     
     if (navigator.clipboard) {
       navigator.clipboard.writeText(inviteText);
-      setCopyToast(`✓ Copied Zoom Access Pass & Invite for ${guestName}!`);
-      setTimeout(() => setCopyToast(''), 3500);
+      setCopiedGuestId(guestId);
+      setTimeout(() => setCopiedGuestId(null), 2500);
     } else {
       alert(`Invite Pass for ${guestName}:\n\n${inviteText}`);
     }
@@ -103,13 +110,6 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
           Event: <strong>{selectedEvent.name}</strong> | Format: <strong>{selectedEvent.type}</strong>
         </p>
       </div>
-
-      {/* Copy Pass Toast Notification */}
-      {copyToast && (
-        <div style={{ background: '#059669', color: '#ffffff', padding: '12px 18px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: '600', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-          {copyToast}
-        </div>
-      )}
 
       {/* Strict Tier Mismatch / Capacity Error Banner */}
       {errorMessage && (
@@ -298,7 +298,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
         /* ================= VIRTUAL DIGITAL ACCESS TIERS VIEW ================= */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Top Live Zoom Broadcast Card — ONLY ONE Single Launch Button */}
+          {/* Top Live Zoom Broadcast Card — ONLY ONE Single Launch Button & Direct Credentials */}
           <div className="virtual-stream-banner-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
@@ -306,9 +306,13 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                 <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', marginTop: '6px' }}>
                   {selectedEvent.name} — Virtual Portal
                 </h2>
-                <p style={{ fontSize: '0.85rem', color: '#ccc', marginTop: '4px' }}>
-                  Zoom Meeting Link: <strong style={{ color: '#38bdf8' }}>{streamUrl}</strong>
-                </p>
+                
+                {/* Meeting Credentials */}
+                <div style={{ display: 'flex', gap: '18px', marginTop: '8px', flexWrap: 'wrap', fontSize: '0.82rem' }}>
+                  <div>Meeting ID: <strong style={{ color: '#ffffff', letterSpacing: '0.5px' }}>{DEFAULT_MEETING_ID}</strong></div>
+                  <div>Passcode: <strong style={{ color: '#ffffff', letterSpacing: '0.5px' }}>{DEFAULT_PASSCODE}</strong></div>
+                  <div>Direct Link: <strong style={{ color: '#38bdf8' }}>{streamUrl}</strong></div>
+                </div>
               </div>
 
               <div>
@@ -317,7 +321,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                   target="_blank" 
                   rel="noreferrer"
                   className="btn-couture btn-primary-couture"
-                  style={{ background: '#ffffff', color: '#000000', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontWeight: '700', borderRadius: '4px' }}
+                  style={{ background: '#ffffff', color: '#000000', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 22px', fontWeight: '700', borderRadius: '4px', fontSize: '0.88rem' }}
                 >
                   🎥 Join Zoom Meeting ↗
                 </a>
@@ -327,7 +331,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
 
           {/* Guidance on How Guests Access the Link */}
           <div style={{ background: '#f8fafc', borderLeft: '4px solid #0284c7', padding: '12px 16px', fontSize: '0.82rem', color: '#334155', borderRadius: '0 4px 4px 0' }}>
-            <strong>💡 How Guests Access the Event:</strong> When you issue a pass to a guest below, click <strong>"📋 Copy Invite &amp; Link"</strong> on their pass card to share their authenticated Pass Token and Zoom link.
+            <strong>💡 How Guests Access the Meeting:</strong> Click <strong>"📋 Copy Invite"</strong> on any issued pass below to copy the guest's verified pass token, Zoom meeting ID (<code>{DEFAULT_MEETING_ID}</code>), and passcode (<code>{DEFAULT_PASSCODE}</code>).
           </div>
 
           {/* Virtual Pass Management Split Layout */}
@@ -441,35 +445,48 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                             No digital passes issued yet.
                           </p>
                         ) : (
-                          secAssignments.map(a => (
-                            <div key={a.id} className="virtual-guest-row">
-                              <div>
-                                <div className="guest-name-bold">{a.guestName}</div>
-                                <div className="guest-brand-uppercase" style={{ fontSize: '0.68rem', color: '#666' }}>
-                                  {a.guestBrand || 'INDEPENDENT'} • <span style={{ color: '#059669', fontWeight: '700' }}>PASS #{a.id.toString().slice(-4)}</span>
+                          secAssignments.map(a => {
+                            const isCopied = copiedGuestId === a.guestId;
+
+                            return (
+                              <div key={a.id} className="virtual-guest-row">
+                                <div>
+                                  <div className="guest-name-bold">{a.guestName}</div>
+                                  <div className="guest-brand-uppercase" style={{ fontSize: '0.68rem', color: '#666' }}>
+                                    {a.guestBrand || 'INDEPENDENT'} • <span style={{ color: '#059669', fontWeight: '700' }}>PASS #{a.id.toString().slice(-4)}</span>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                  {/* Dynamic Green State on Copy */}
+                                  <button
+                                    className="btn-couture"
+                                    style={{ 
+                                      fontSize: '0.68rem', 
+                                      padding: '4px 8px', 
+                                      background: isCopied ? '#059669' : '#ffffff',
+                                      color: isCopied ? '#ffffff' : '#111111',
+                                      borderColor: isCopied ? '#059669' : '#d0d0d0',
+                                      fontWeight: '600',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    title="Copy personalized invite & Zoom credentials"
+                                    onClick={() => handleCopyGuestInvite(a.guestId, a.guestName, a.guestBrand, sec.name, a.id)}
+                                  >
+                                    {isCopied ? '✓ Copied!' : '📋 Copy Invite'}
+                                  </button>
+
+                                  <button 
+                                    className="btn-delete-minimal" 
+                                    title="Revoke Pass"
+                                    onClick={() => onUnassignSeat(a.guestId)}
+                                  >
+                                    Revoke
+                                  </button>
                                 </div>
                               </div>
-
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                <button
-                                  className="btn-couture btn-secondary-couture"
-                                  style={{ fontSize: '0.68rem', padding: '3px 7px', background: '#ffffff' }}
-                                  title="Copy Invite & Link to clipboard"
-                                  onClick={() => handleCopyGuestInvite(a.guestName, a.guestBrand, sec.name, a.id)}
-                                >
-                                  📋 Copy Invite
-                                </button>
-
-                                <button 
-                                  className="btn-delete-minimal" 
-                                  title="Revoke Pass"
-                                  onClick={() => onUnassignSeat(a.guestId)}
-                                >
-                                  Revoke
-                                </button>
-                              </div>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </div>
