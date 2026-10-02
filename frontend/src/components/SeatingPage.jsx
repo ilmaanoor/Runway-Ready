@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import runwayShowBanner from '../assets/runway_show_banner.png';
 import editorPortraitImg from '../assets/fashion_editor_portrait.png';
 
-export default function SeatingPage({ selectedEvent, guests, sections, assignments, onAssignSeat, onUnassignSeat }) {
+export default function SeatingPage({ selectedEvent, guests, sections, assignments, separationRules = [], onAssignSeat, onUnassignSeat }) {
   const [selectedGuestId, setSelectedGuestId] = useState(null);
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [selectedPosition, setSelectedPosition] = useState(1);
@@ -23,6 +23,26 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
 
   const isPhysical = selectedEvent.type === 'Physical';
   const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
+
+  // Helper: Detect if an assigned seat has an adjacent brand separation conflict
+  const isSeatInConflict = (sectionId, position, assignedGuestBrand) => {
+    if (!assignedGuestBrand || !separationRules || separationRules.length === 0) return false;
+    const brandLower = assignedGuestBrand.trim().toLowerCase();
+
+    const adjacent = assignments.filter(a =>
+      a.sectionId === sectionId &&
+      (a.position === position - 1 || a.position === position + 1)
+    );
+
+    return adjacent.some(adj => {
+      if (!adj.guestBrand) return false;
+      const adjBrandLower = adj.guestBrand.trim().toLowerCase();
+      return separationRules.some(r =>
+        (r.brandA.toLowerCase() === brandLower && r.brandB.toLowerCase() === adjBrandLower) ||
+        (r.brandB.toLowerCase() === brandLower && r.brandA.toLowerCase() === adjBrandLower)
+      );
+    });
+  };
 
   // Handle Seat Assignment using Pure React State Function
   const handleAssign = (guestId, sectionId, position) => {
@@ -63,11 +83,13 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
         </div>
       )}
 
-      {/* Rival Brand Clash Warning Banner (Names exact rival attendees & brands) */}
+      {/* Seating Separation Protocol Advisory Banner */}
       {warnings.length > 0 && (
         <div className="seating-rival-banner">
-          <strong>RIVAL BRAND SEATING CONFLICT DETECTED:</strong>
-          <ul style={{ marginTop: '6px', paddingLeft: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', letterSpacing: '0.5px' }}>
+            <span>⚠️</span> SEATING SEPARATION PROTOCOL ADVISORY
+          </div>
+          <ul style={{ marginTop: '8px', paddingLeft: '20px', fontSize: '0.85rem', lineHeight: '1.5' }}>
             {warnings.map((w, idx) => (
               <li key={idx} style={{ marginTop: '4px' }}>{w.message}</li>
             ))}
@@ -188,12 +210,18 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                   <div className="seat-grid-parallel">
                     {Array.from({ length: sec.capacity }, (_, i) => i + 1).map(pos => {
                       const assigned = secAssignments.find(a => a.position === pos);
+                      const isConflict = assigned && isSeatInConflict(sec.id, pos, assigned.guestBrand);
+
                       return (
                         <div 
                           key={pos} 
-                          className={`seat-square-block ${assigned ? 'occupied' : ''}`}
+                          className={`seat-square-block ${assigned ? 'occupied' : ''} ${isConflict ? 'has-conflict' : ''}`}
                           style={{ cursor: 'pointer' }}
-                          title={assigned ? 'Click to unassign seat' : 'Click to assign guest'}
+                          title={
+                            isConflict 
+                              ? '⚠️ Brand Separation Conflict! Click to unassign seat' 
+                              : (assigned ? 'Click to unassign seat' : 'Click to assign guest')
+                          }
                           onClick={() => {
                             if (assigned) {
                               onUnassignSeat(assigned.guestId);
@@ -211,7 +239,10 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                             }
                           }}
                         >
-                          <span className="seat-num-tag">Seat {pos}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span className="seat-num-tag">Seat {pos}</span>
+                            {isConflict && <span className="seat-conflict-indicator">⚠️ CONFLICT</span>}
+                          </div>
                           {assigned ? (
                             <div>
                               <div className="seat-guest-name-text">{assigned.guestName}</div>

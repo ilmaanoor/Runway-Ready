@@ -322,7 +322,7 @@ export default function App() {
           );
 
           if (isFlagged) {
-            const warn = `SEATING SEPARATION PROTOCOL: '${guest.name}' (${guest.brand}) and '${adjGuest.name}' (${adjGuest.brand}) have a preferred separation rule. Consider reassigning to maintain seating protocol. (Seat ${position} adjacent to Seat ${adj.position}).`;
+            const warn = `⚠️ PROTOCOL ADVISORY: Brand adjacency alert between '${guest.name}' (${guest.brand.toUpperCase()}) at Seat ${position} and '${adjGuest.name}' (${adjGuest.brand.toUpperCase()}) at Seat ${adj.position}. Recommended action: Separate seating to observe brand distance protocol.`;
             warnings.push({ type: 'separation_alert', message: warn });
             setWarningLogs(prev => [...prev, { id: Date.now() + Math.random(), eventId: selectedEvent.id, type: 'separation_alert', message: warn }]);
           }
@@ -419,6 +419,7 @@ export default function App() {
                 guests={guests.filter(g => g.eventId === selectedEvent.id)}
                 sections={sections.filter(s => s.eventId === selectedEvent.id)}
                 assignments={seatAssignments.filter(s => s.eventId === selectedEvent.id)}
+                separationRules={separationRules}
                 onAssignSeat={handleAssignSeat}
                 onUnassignSeat={handleUnassignSeat}
               />
