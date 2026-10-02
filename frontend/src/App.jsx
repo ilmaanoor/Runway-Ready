@@ -1,6 +1,7 @@
 // RUNWAY READY — Main Application Root Component
 // Pure React Application built for Stella Maris College BCA Coursework
 // 2-Tier Architecture: Admin (Supervisor) & Event Coordinator (Staff)
+// Uses React State Management & Hooks with CRUD Operations
 
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
@@ -12,7 +13,9 @@ import Admin from './components/Admin';
 import EventReport from './components/EventReport';
 import './App.css';
 
-// Initial Mock Data Arrays (Pure JavaScript Objects - No JSON or APIs needed)
+// ==========================================
+// SQLITE-ALIGNED INITIAL DATABASE RECORDS
+// ==========================================
 const INITIAL_USERS = [
   { id: 1, name: 'Admin User', email: 'admin@runway.com', password: 'admin123', role: 'admin' },
   { id: 2, name: 'Event Coordinator', email: 'coordinator@runway.com', password: 'staff123', role: 'coordinator' }
@@ -48,7 +51,7 @@ const INITIAL_EVENTS = [
   }
 ];
 
-// INITIAL_SECTIONS: capacities are proportional to each event's total capacity
+// INITIAL_SECTIONS: capacities are proportional to each event total capacity
 // Event 1 = 200 seats, Event 2 = 150 seats, Event 3 = 500 (virtual)
 // Distribution: VIP 20%, Press 20%, Buyer 25%, General 35%
 const INITIAL_SECTIONS = [
@@ -79,9 +82,7 @@ const INITIAL_GUESTS = [
   { id: 5, eventId: 1, name: 'Milan Retail Buyer',tier: 'Buyer',   brand: 'Prada',       checked_in: 0 }
 ];
 
-// "Seating Separation Protocol" — replaces "Rival Brands" terminology.
-// These are pairs of brands that should NOT be seated adjacent to each other
-// as per fashion industry seating etiquette (not "rivals" — just preferred separation).
+// Seating Separation Protocol: pairs of brands with separation guidelines
 const INITIAL_SEPARATION = [
   { id: 1, brandA: 'Chanel', brandB: 'Dior' },
   { id: 2, brandA: 'Gucci',  brandB: 'Balenciaga' },
@@ -89,187 +90,169 @@ const INITIAL_SEPARATION = [
 ];
 
 export default function App() {
-  // 1. MAIN APPLICATION STATE
-  // Each state loads from localStorage first; falls back to INITIAL data if nothing saved yet.
-  const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('rr_currentUser');
-    return saved ? JSON.parse(saved) : null;
-  });
+  // =========================================================================
+  // REACT STATE MANAGEMENT (Centralized In-Memory Database State)
+  // =========================================================================
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activePage, setActivePage] = useState('login');
+  const [users, setUsers] = useState(INITIAL_USERS);
+  const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [guests, setGuests] = useState(INITIAL_GUESTS);
+  const [sections, setSections] = useState(INITIAL_SECTIONS);
+  const [seatAssignments, setSeatAssignments] = useState([]);
+  const [separationRules, setSeparationRules] = useState(INITIAL_SEPARATION);
+  const [warningLogs, setWarningLogs] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(INITIAL_EVENTS[0]);
 
-  const [activePage, setActivePage] = useState(() => {
-    const saved = localStorage.getItem('rr_activePage');
-    return saved ? saved : 'login';
-  });
-
-  const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('rr_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
-  });
-
-  const [events, setEvents] = useState(() => {
-    const saved = localStorage.getItem('rr_events');
-    return saved ? JSON.parse(saved) : INITIAL_EVENTS;
-  });
-
-  const [guests, setGuests] = useState(() => {
-    const saved = localStorage.getItem('rr_guests');
-    return saved ? JSON.parse(saved) : INITIAL_GUESTS;
-  });
-
-  const [sections, setSections] = useState(() => {
-    const saved = localStorage.getItem('rr_sections');
-    return saved ? JSON.parse(saved) : INITIAL_SECTIONS;
-  });
-
-  const [seatAssignments, setSeatAssignments] = useState(() => {
-    const saved = localStorage.getItem('rr_assignments');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [separationRules, setSeparationRules] = useState(() => {
-    const saved = localStorage.getItem('rr_separation');
-    return saved ? JSON.parse(saved) : INITIAL_SEPARATION;
-  });
-
-  const [warningLogs, setWarningLogs] = useState(() => {
-    const saved = localStorage.getItem('rr_warnings');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // selectedEvent: restore from localStorage or default to first event
-  const [selectedEvent, setSelectedEvent] = useState(() => {
-    const savedEvents = localStorage.getItem('rr_events');
-    const evList = savedEvents ? JSON.parse(savedEvents) : INITIAL_EVENTS;
-    const savedSelectedId = localStorage.getItem('rr_selectedEventId');
-    if (savedSelectedId) {
-      const parsedId = JSON.parse(savedSelectedId);
-      const found = evList.find(e => e.id === parsedId);
-      if (found) return found;
-    }
-    return evList[0] || null;
-  });
-
-  // 2. AUTO-SAVE: whenever any state changes, save it to localStorage
-  useEffect(() => { localStorage.setItem('rr_users',       JSON.stringify(users));        }, [users]);
-  useEffect(() => { localStorage.setItem('rr_events',      JSON.stringify(events));       }, [events]);
-  useEffect(() => { localStorage.setItem('rr_guests',      JSON.stringify(guests));       }, [guests]);
-  useEffect(() => { localStorage.setItem('rr_sections',    JSON.stringify(sections));     }, [sections]);
-  useEffect(() => { localStorage.setItem('rr_assignments', JSON.stringify(seatAssignments)); }, [seatAssignments]);
-  useEffect(() => { localStorage.setItem('rr_separation',  JSON.stringify(separationRules)); }, [separationRules]);
-  useEffect(() => { localStorage.setItem('rr_warnings',    JSON.stringify(warningLogs));  }, [warningLogs]);
+  // Keep selectedEvent valid if events list updates
   useEffect(() => {
-    if (selectedEvent) {
-      localStorage.setItem('rr_selectedEventId', JSON.stringify(selectedEvent.id));
+    if (!selectedEvent && events.length > 0) {
+      setSelectedEvent(events[0]);
     }
-  }, [selectedEvent]);
+  }, [events, selectedEvent]);
 
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('rr_currentUser', JSON.stringify(currentUser));
-      localStorage.setItem('rr_activePage', activePage);
-    } else {
-      localStorage.removeItem('rr_currentUser');
-      localStorage.removeItem('rr_activePage');
-    }
-  }, [currentUser, activePage]);
-
-  // 2. AUTHENTICATION (Login / Logout)
+  // =========================================================================
+  // AUTHENTICATION (Login / Logout Handlers)
+  // =========================================================================
   const handleLogin = (email, password) => {
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (user) {
       setCurrentUser(user);
-      if (user.role === 'coordinator') {
-        setActivePage('guests'); // Coordinator lands directly on Guest Operations
-      } else {
-        setActivePage('dashboard'); // Admin lands on Dashboard
-      }
+      setActivePage('dashboard');
       return { success: true };
-    } else {
-      return { success: false, message: 'Invalid email address or password. Please try again!' };
     }
+    return { success: false, message: 'Invalid email or password' };
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     setActivePage('login');
-    localStorage.removeItem('rr_currentUser');
-    localStorage.removeItem('rr_activePage');
   };
 
-  // 3. EVENT CRUD OPERATIONS
-  const handleAddEvent = (newEventData) => {
+  // =========================================================================
+  // CRUD OPERATIONS: CREATE
+  // =========================================================================
+  
+  // 1. Create Event
+  const handleCreateEvent = (eventData) => {
     const newId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
-    const newEvent = { id: newId, ...newEventData };
-    const updatedEvents = [newEvent, ...events];
-    setEvents(updatedEvents);
+    const totalCap = Number(eventData.capacity) || 100;
+    
+    const newEvent = {
+      id: newId,
+      name: eventData.name,
+      date: eventData.date,
+      type: eventData.type,
+      location: eventData.location || '',
+      capacity: totalCap,
+      description: eventData.description || ''
+    };
 
-    // Calculate section capacities from the event's total capacity (cinema-style)
-    const total = parseInt(newEventData.capacity) || 100;
-    const vipCap     = Math.max(1, Math.round(total * 0.20)); // 20% VIP
-    const pressCap   = Math.max(1, Math.round(total * 0.20)); // 20% Press
-    const buyerCap   = Math.max(1, Math.round(total * 0.25)); // 25% Buyer
-    const generalCap = Math.max(1, total - vipCap - pressCap - buyerCap); // Remaining
+    // Calculate proportional seating sections
+    const vipCap = Math.max(1, Math.round(totalCap * 0.20));
+    const pressCap = Math.max(1, Math.round(totalCap * 0.20));
+    const buyerCap = Math.max(1, Math.round(totalCap * 0.25));
+    const generalCap = Math.max(1, totalCap - (vipCap + pressCap + buyerCap));
 
-    // Create default sections proportional to event capacity
-    const newSections = newEventData.type === 'Physical' ? [
-      { id: Date.now() + 1, eventId: newId, name: 'Front Row A (VIP)',      allowed_tier: 'VIP',     capacity: vipCap     },
-      { id: Date.now() + 2, eventId: newId, name: 'Press Box B (Press)',    allowed_tier: 'Press',   capacity: pressCap   },
-      { id: Date.now() + 3, eventId: newId, name: 'Buyer Lounge C (Buyer)', allowed_tier: 'Buyer',   capacity: buyerCap   },
-      { id: Date.now() + 4, eventId: newId, name: 'General Gallery D',      allowed_tier: 'General', capacity: generalCap }
-    ] : [
-      { id: Date.now() + 1, eventId: newId, name: 'VIP Stream Access',       allowed_tier: 'VIP',     capacity: vipCap     },
-      { id: Date.now() + 2, eventId: newId, name: 'Press Media Access',      allowed_tier: 'Press',   capacity: pressCap   },
-      { id: Date.now() + 3, eventId: newId, name: 'Buyer Pass Access',       allowed_tier: 'Buyer',   capacity: buyerCap   },
-      { id: Date.now() + 4, eventId: newId, name: 'General Audience Stream', allowed_tier: 'General', capacity: generalCap }
+    const nextSecId = sections.length > 0 ? Math.max(...sections.map(s => s.id)) + 1 : 1;
+    const isVirtual = eventData.type.toLowerCase() === 'virtual';
+
+    const newSections = [
+      {
+        id: nextSecId,
+        eventId: newId,
+        name: isVirtual ? 'VIP Stream Access' : 'Front Row A (VIP)',
+        allowed_tier: 'VIP',
+        capacity: vipCap
+      },
+      {
+        id: nextSecId + 1,
+        eventId: newId,
+        name: isVirtual ? 'Press Media Access' : 'Press Row B (Press)',
+        allowed_tier: 'Press',
+        capacity: pressCap
+      },
+      {
+        id: nextSecId + 2,
+        eventId: newId,
+        name: isVirtual ? 'Buyer Pass Access' : 'Buyer Lounge C (Buyer)',
+        allowed_tier: 'Buyer',
+        capacity: buyerCap
+      },
+      {
+        id: nextSecId + 3,
+        eventId: newId,
+        name: isVirtual ? 'General Audience Stream' : 'General Gallery D',
+        allowed_tier: 'General',
+        capacity: generalCap
+      }
     ];
 
-    setSections([...sections, ...newSections]);
+    setEvents(prev => [...prev, newEvent]);
+    setSections(prev => [...prev, ...newSections]);
     setSelectedEvent(newEvent);
+    return newEvent;
   };
 
-  const handleDeleteEvent = (eventId) => {
-    const updatedEvents = events.filter(e => e.id !== eventId);
-    setEvents(updatedEvents);
-    setSections(sections.filter(s => s.eventId !== eventId));
-    setGuests(guests.filter(g => g.eventId !== eventId));
-    setSeatAssignments(seatAssignments.filter(s => s.eventId !== eventId));
-    setWarningLogs(warningLogs.filter(w => w.eventId !== eventId));
-
-    if (selectedEvent && selectedEvent.id === eventId) {
-      setSelectedEvent(updatedEvents.length > 0 ? updatedEvents[0] : null);
-    }
-  };
-
-  const handleSelectEvent = (event) => {
-    setSelectedEvent(event);
-    if (currentUser && currentUser.role === 'coordinator') {
-      setActivePage('guests');
-    } else {
-      setActivePage('seating');
-    }
-  };
-
-  // 4. GUEST CRUD OPERATIONS
+  // 2. Create / Add Guest
   const handleAddGuest = (guestData) => {
+    if (!selectedEvent) return;
     const newId = guests.length > 0 ? Math.max(...guests.map(g => g.id)) + 1 : 1;
     const newGuest = {
       id: newId,
       eventId: selectedEvent.id,
       name: guestData.name,
-      tier: guestData.tier,
-      brand: guestData.brand || '',
+      tier: guestData.tier || 'General',
+      brand: guestData.brand || 'Independent',
       checked_in: 0
     };
-    setGuests([...guests, newGuest]);
+    setGuests(prev => [...prev, newGuest]);
+    return newGuest;
   };
 
-  const handleDeleteGuest = (guestId) => {
-    setGuests(guests.filter(g => g.id !== guestId));
-    setSeatAssignments(seatAssignments.filter(s => s.guestId !== guestId));
+  // 3. Create Separation Rule
+  const handleAddSeparationRule = (ruleData) => {
+    const newId = separationRules.length > 0 ? Math.max(...separationRules.map(r => r.id)) + 1 : 1;
+    const newRule = {
+      id: newId,
+      brandA: ruleData.brandA.trim(),
+      brandB: ruleData.brandB.trim()
+    };
+    setSeparationRules(prev => [...prev, newRule]);
+    return newRule;
   };
 
-  const handleToggleCheckin = (guestId) => {
-    setGuests(guests.map(g => {
+  // 4. Create / Add User
+  const handleAddUser = (userData) => {
+    const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+    const newUser = {
+      id: newId,
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      role: userData.role || 'coordinator'
+    };
+    setUsers(prev => [...prev, newUser]);
+    return newUser;
+  };
+
+  // =========================================================================
+  // CRUD OPERATIONS: READ (Selectors & Helpers)
+  // =========================================================================
+  const eventGuests = guests.filter(g => selectedEvent && g.eventId === selectedEvent.id);
+  const eventSections = sections.filter(s => selectedEvent && s.eventId === selectedEvent.id);
+  const eventAssignments = seatAssignments.filter(a => {
+    const guest = guests.find(g => g.id === a.guestId);
+    return guest && selectedEvent && guest.eventId === selectedEvent.id;
+  });
+
+  // =========================================================================
+  // CRUD OPERATIONS: UPDATE
+  // =========================================================================
+  
+  // 1. Update Check-In Status
+  const handleToggleCheckIn = (guestId) => {
+    setGuests(prev => prev.map(g => {
       if (g.id === guestId) {
         return { ...g, checked_in: g.checked_in === 1 ? 0 : 1 };
       }
@@ -277,183 +260,191 @@ export default function App() {
     }));
   };
 
-  // 5. SEATING ASSIGNMENT & RULE ENGINE
+  // 2. Update Seat Assignment with Rule Conflict Detection
   const handleAssignSeat = (guestId, sectionId, position) => {
-    const guest = guests.find(g => g.id === parseInt(guestId));
-    const section = sections.find(s => s.id === parseInt(sectionId));
+    const guest = guests.find(g => g.id === guestId);
+    const section = sections.find(s => s.id === sectionId);
 
-    if (!guest || !section) {
-      return { success: false, error: 'Guest or Section not found.' };
+    if (!guest || !section) return { success: false, error: 'Guest or Section not found' };
+
+    // Validate tier match
+    if (section.allowed_tier !== 'General' && section.allowed_tier !== guest.tier) {
+      const msg = `Tier Mismatch: ${guest.name} (${guest.tier}) cannot be seated in ${section.name} (Requires ${section.allowed_tier})`;
+      setWarningLogs(prev => [{
+        id: Date.now(),
+        eventId: selectedEvent.id,
+        guestId: guest.id,
+        type: 'tier_mismatch',
+        message: msg
+      }, ...prev]);
+      return { success: false, error: msg };
     }
 
-    // RULE 1: Strict Tier Enforcement (Block Mismatches)
-    if (guest.tier !== section.allowed_tier) {
-      const err = `STRICT TIER ENFORCEMENT: Guest '${guest.name}' holds a ${guest.tier} ticket and can ONLY be assigned to a ${guest.tier} section (Section '${section.name}' requires ${section.allowed_tier} tier).`;
-      setWarningLogs([...warningLogs, { id: Date.now(), eventId: selectedEvent.id, type: 'tier_mismatch', message: err }]);
-      return { success: false, error: err };
-    }
+    // Check brand separation rules with neighbors
+    const leftNeighbor = seatAssignments.find(a => a.sectionId === sectionId && a.position === position - 1);
+    const rightNeighbor = seatAssignments.find(a => a.sectionId === sectionId && a.position === position + 1);
 
-    // RULE 2: Capacity Limit Check
-    const currentOccupancy = seatAssignments.filter(s => s.sectionId === section.id && s.guestId !== guest.id).length;
-    if (currentOccupancy >= section.capacity) {
-      const err = `Capacity Overflow: Section '${section.name}' is full (Max Capacity: ${section.capacity}).`;
-      setWarningLogs([...warningLogs, { id: Date.now(), eventId: selectedEvent.id, type: 'capacity_full', message: err }]);
-      return { success: false, error: err };
-    }
+    const checkClash = (neighborAssign) => {
+      if (!neighborAssign) return null;
+      const neighborGuest = guests.find(g => g.id === neighborAssign.guestId);
+      if (!neighborGuest || !neighborGuest.brand || !guest.brand) return null;
 
-    // RULE 3: Seating Separation Protocol Check
-    // Checks if the guest's brand and any adjacent guest's brand are flagged for separation
-    const warnings = [];
-    const adjAssignments = seatAssignments.filter(s => 
-      s.sectionId === section.id && 
-      (s.position === position - 1 || s.position === position + 1) && 
-      s.guestId !== guest.id
-    );
+      const isSeparated = separationRules.some(r =>
+        (r.brandA.toLowerCase() === guest.brand.toLowerCase() && r.brandB.toLowerCase() === neighborGuest.brand.toLowerCase()) ||
+        (r.brandB.toLowerCase() === guest.brand.toLowerCase() && r.brandA.toLowerCase() === neighborGuest.brand.toLowerCase())
+      );
 
-    if (guest.brand) {
-      const guestBrandLower = guest.brand.trim().toLowerCase();
-      adjAssignments.forEach(adj => {
-        const adjGuest = guests.find(g => g.id === adj.guestId);
-        if (adjGuest && adjGuest.brand) {
-          const adjBrandLower = adjGuest.brand.trim().toLowerCase();
-          const isFlagged = separationRules.some(r => 
-            (r.brandA.toLowerCase() === guestBrandLower && r.brandB.toLowerCase() === adjBrandLower) ||
-            (r.brandB.toLowerCase() === guestBrandLower && r.brandA.toLowerCase() === adjBrandLower)
-          );
-
-          if (isFlagged) {
-            const warn = `⚠️ PROTOCOL ADVISORY: Brand adjacency alert between '${guest.name}' (${guest.brand.toUpperCase()}) at Seat ${position} and '${adjGuest.name}' (${adjGuest.brand.toUpperCase()}) at Seat ${adj.position}. Recommended action: Separate seating to observe brand distance protocol.`;
-            warnings.push({ type: 'separation_alert', message: warn });
-            setWarningLogs(prev => [...prev, { id: Date.now() + Math.random(), eventId: selectedEvent.id, type: 'separation_alert', message: warn }]);
-          }
-        }
-      });
-    }
-
-    // Update or Add Seat Assignment
-    const remaining = seatAssignments.filter(s => s.guestId !== guest.id);
-    const newAssignment = {
-      id: Date.now(),
-      eventId: selectedEvent.id,
-      guestId: guest.id,
-      guestName: guest.name,
-      guestTier: guest.tier,
-      guestBrand: guest.brand,
-      sectionId: section.id,
-      position: position
+      if (isSeparated) {
+        return `Brand Separation Alert: ${guest.name} (${guest.brand}) is adjacent to ${neighborGuest.name} (${neighborGuest.brand}) at Seat #${neighborAssign.position}`;
+      }
+      return null;
     };
-    setSeatAssignments([...remaining, newAssignment]);
 
-    return { 
-      success: true, 
-      message: `Assigned ${guest.name} to ${section.name} - Seat ${position}`,
-      warnings: warnings 
-    };
+    const leftClash = checkClash(leftNeighbor);
+    const rightClash = checkClash(rightNeighbor);
+    const clashMsg = leftClash || rightClash;
+
+    if (clashMsg) {
+      setWarningLogs(prev => [{
+        id: Date.now(),
+        eventId: selectedEvent.id,
+        guestId: guest.id,
+        type: 'brand_clash',
+        message: clashMsg
+      }, ...prev]);
+    }
+
+    // Update assignment list
+    setSeatAssignments(prev => {
+      const filtered = prev.filter(a => a.guestId !== guestId && !(a.sectionId === sectionId && a.position === position));
+      return [...filtered, {
+        id: prev.length > 0 ? Math.max(...prev.map(a => a.id)) + 1 : 1,
+        guestId: guestId,
+        sectionId: sectionId,
+        position: position
+      }];
+    });
+
+    return { success: true, warning: clashMsg };
   };
 
+  // =========================================================================
+  // CRUD OPERATIONS: DELETE
+  // =========================================================================
+  
+  // 1. Delete Seat Assignment
   const handleUnassignSeat = (guestId) => {
-    setSeatAssignments(seatAssignments.filter(s => s.guestId !== guestId));
+    setSeatAssignments(prev => prev.filter(a => a.guestId !== guestId));
   };
 
-  // 6. ADMIN MANAGEMENT (Users & Seating Separation Protocol Rules)
-  const handleAddUser = (userData) => {
-    const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
-    setUsers([...users, { id: newId, ...userData }]);
+  // 2. Delete Event (Cascade removes related guests, sections, assignments)
+  const handleDeleteEvent = (eventId) => {
+    setEvents(prev => prev.filter(e => e.id !== eventId));
+    setGuests(prev => prev.filter(g => g.eventId !== eventId));
+    setSections(prev => prev.filter(s => s.eventId !== eventId));
+    setSeatAssignments(prev => prev.filter(a => {
+      const g = guests.find(guest => guest.id === a.guestId);
+      return g && g.eventId !== eventId;
+    }));
+    if (selectedEvent && selectedEvent.id === eventId) {
+      const remaining = events.filter(e => e.id !== eventId);
+      setSelectedEvent(remaining[0] || null);
+    }
   };
 
-  const handleDeleteUser = (userId) => {
-    setUsers(users.filter(u => u.id !== userId));
-  };
-
-  const handleAddSeparationRule = (brandA, brandB) => {
-    const newId = separationRules.length > 0 ? Math.max(...separationRules.map(r => r.id)) + 1 : 1;
-    setSeparationRules([...separationRules, { id: newId, brandA, brandB }]);
-  };
-
+  // 3. Delete Separation Rule
   const handleDeleteSeparationRule = (ruleId) => {
-    setSeparationRules(separationRules.filter(r => r.id !== ruleId));
+    setSeparationRules(prev => prev.filter(r => r.id !== ruleId));
   };
 
-  // 7. COMPONENT RENDER
+  // 4. Delete User
+  const handleDeleteUser = (userId) => {
+    setUsers(prev => prev.filter(u => u.id !== userId));
+  };
+
+  // =========================================================================
+  // NAVIGATION & VIEW SWITCHING
+  // =========================================================================
+  if (!currentUser) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
-    <div className="app-root">
+    <div className="app-container">
       <Navbar 
-        currentUser={currentUser} 
-        activePage={activePage} 
+        currentUser={currentUser}
+        activePage={activePage}
         setActivePage={setActivePage}
-        eventsList={events}
+        onLogout={handleLogout}
+        events={events}
         selectedEvent={selectedEvent}
         setSelectedEvent={setSelectedEvent}
-        onLogout={handleLogout}
       />
 
       <main className="main-content">
-        {!currentUser ? (
-          <Login onLogin={handleLogin} />
-        ) : (
-          <>
-            {activePage === 'dashboard' && (
-              <Dashboard 
-                currentUser={currentUser}
-                events={events}
-                onAddEvent={handleAddEvent}
-                onDeleteEvent={handleDeleteEvent}
-                onSelectEvent={handleSelectEvent} 
-                activeSelectedEvent={selectedEvent} 
-              />
-            )}
+        {activePage === 'dashboard' && (
+          <Dashboard 
+            events={events}
+            selectedEvent={selectedEvent}
+            setSelectedEvent={setSelectedEvent}
+            guests={guests}
+            sections={sections}
+            seatAssignments={seatAssignments}
+            onCreateEvent={handleCreateEvent}
+            onDeleteEvent={handleDeleteEvent}
+            setActivePage={setActivePage}
+          />
+        )}
 
-            {activePage === 'guests' && (
-              <GuestList 
-                selectedEvent={selectedEvent}
-                guests={guests.filter(g => g.eventId === selectedEvent.id)}
-                onAddGuest={handleAddGuest}
-                onDeleteGuest={handleDeleteGuest}
-                onToggleCheckin={handleToggleCheckin}
-              />
-            )}
+        {activePage === 'guests' && (
+          <GuestList 
+            selectedEvent={selectedEvent}
+            guests={eventGuests}
+            sections={eventSections}
+            seatAssignments={eventAssignments}
+            onAddGuest={handleAddGuest}
+            onToggleCheckIn={handleToggleCheckIn}
+            onAssignSeat={handleAssignSeat}
+            onUnassignSeat={handleUnassignSeat}
+          />
+        )}
 
-            {activePage === 'seating' && (
-              <SeatingPage 
-                selectedEvent={selectedEvent}
-                guests={guests.filter(g => g.eventId === selectedEvent.id)}
-                sections={sections.filter(s => s.eventId === selectedEvent.id)}
-                assignments={seatAssignments.filter(s => s.eventId === selectedEvent.id)}
-                separationRules={separationRules}
-                onAssignSeat={handleAssignSeat}
-                onUnassignSeat={handleUnassignSeat}
-              />
-            )}
+        {activePage === 'seating' && (
+          <SeatingPage 
+            selectedEvent={selectedEvent}
+            guests={eventGuests}
+            sections={eventSections}
+            seatAssignments={eventAssignments}
+            separationRules={separationRules}
+            onAssignSeat={handleAssignSeat}
+            onUnassignSeat={handleUnassignSeat}
+            warningLogs={warningLogs}
+          />
+        )}
 
-            {activePage === 'admin' && currentUser.role === 'admin' && (
-              <Admin 
-                selectedEvent={selectedEvent}
-                users={users}
-                separationRules={separationRules}
-                sections={sections.filter(s => s.eventId === selectedEvent.id)}
-                onAddUser={handleAddUser}
-                onDeleteUser={handleDeleteUser}
-                onAddSeparationRule={handleAddSeparationRule}
-                onDeleteSeparationRule={handleDeleteSeparationRule}
-              />
-            )}
+        {activePage === 'report' && (
+          <EventReport 
+            selectedEvent={selectedEvent}
+            guests={eventGuests}
+            sections={eventSections}
+            seatAssignments={eventAssignments}
+            warningLogs={warningLogs}
+          />
+        )}
 
-            {activePage === 'report' && currentUser.role === 'admin' && (
-              <EventReport 
-                selectedEvent={selectedEvent}
-                guests={guests.filter(g => g.eventId === selectedEvent.id)}
-                sections={sections.filter(s => s.eventId === selectedEvent.id)}
-                assignments={seatAssignments.filter(s => s.eventId === selectedEvent.id)}
-                warningLogs={warningLogs.filter(w => w.eventId === selectedEvent.id)}
-              />
-            )}
-          </>
+        {activePage === 'admin' && (
+          <Admin 
+            currentUser={currentUser}
+            users={users}
+            onAddUser={handleAddUser}
+            onDeleteUser={handleDeleteUser}
+            separationRules={separationRules}
+            onAddRule={handleAddSeparationRule}
+            onDeleteRule={handleDeleteSeparationRule}
+            warningLogs={warningLogs}
+          />
         )}
       </main>
-
-      <footer className="app-footer">
-        <p>Runway Ready © 2027 — Fashion Show Seating & Access Coordination System</p>
-      </footer>
     </div>
   );
 }
