@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import runwayShowBanner from '../assets/runway_show_banner.png';
 import editorPortraitImg from '../assets/fashion_editor_portrait.png';
+import adminRunwayBanner from '../assets/admin_runway_editorial.png';
 
 export default function SeatingPage({ selectedEvent, guests, sections, assignments, separationRules = [], onAssignSeat, onUnassignSeat }) {
   const [selectedGuestId, setSelectedGuestId] = useState(null);
@@ -10,6 +11,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const [warnings, setWarnings] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showStreamModal, setShowStreamModal] = useState(false);
 
   if (!selectedEvent) {
     return (
@@ -23,6 +25,16 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
 
   const isPhysical = selectedEvent.type === 'Physical';
   const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
+
+  // Helper: Get a properly formatted, valid stream URL
+  const getStreamUrl = (loc) => {
+    if (!loc) return 'https://live.chanel.com/runway-broadcast';
+    if (loc.startsWith('http://') || loc.startsWith('https://')) return loc;
+    if (loc.includes('.')) return `https://${loc}`;
+    return `https://live.runway.com/${encodeURIComponent(loc.toLowerCase().replace(/\s+/g, '-'))}`;
+  };
+
+  const streamUrl = getStreamUrl(selectedEvent.location);
 
   // Helper: Detect if an assigned seat has an adjacent brand separation conflict (Physical only)
   const isSeatInConflict = (sectionId, position, assignedGuestBrand) => {
@@ -267,30 +279,78 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
           
           {/* Top Live Broadcast Stream Information Card */}
           <div className="virtual-stream-banner-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
                 <span className="live-stream-badge">🔴 LIVE BROADCAST STREAM</span>
                 <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', marginTop: '6px' }}>
                   {selectedEvent.name} — Digital Portal
                 </h2>
-                <p style={{ fontSize: '0.85rem', color: '#555', marginTop: '4px' }}>
-                  Secure Stream URL: <strong style={{ color: '#000' }}>{selectedEvent.location || 'https://live.runway.com/broadcast'}</strong>
+                <p style={{ fontSize: '0.85rem', color: '#ccc', marginTop: '4px' }}>
+                  Secure Stream URL: <strong style={{ color: '#38bdf8' }}>{streamUrl}</strong>
                 </p>
               </div>
 
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <a 
-                  href={selectedEvent.location?.startsWith('http') ? selectedEvent.location : `https://${selectedEvent.location || 'live.runway.com'}`}
-                  target="_blank" 
-                  rel="noreferrer"
+                <button 
                   className="btn-couture btn-primary-couture"
-                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  style={{ background: '#ffffff', color: '#000000', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  onClick={() => setShowStreamModal(true)}
                 >
-                  Join Stream Portal ↗
-                </a>
+                  ▶ Open Live Stream Player
+                </button>
               </div>
             </div>
           </div>
+
+          {/* Live Virtual Broadcast Player Modal */}
+          {showStreamModal && (
+            <div className="stream-modal-overlay" onClick={() => setShowStreamModal(false)}>
+              <div className="stream-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="stream-modal-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="live-stream-badge">🔴 4K ULTRA HD BROADCAST</span>
+                    <strong style={{ color: '#ffffff', fontSize: '1rem' }}>{selectedEvent.name}</strong>
+                  </div>
+                  <button 
+                    className="stream-modal-close" 
+                    onClick={() => setShowStreamModal(false)}
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+
+                <div className="stream-video-container">
+                  <img 
+                    src={adminRunwayBanner} 
+                    alt="Live Catwalk Stream" 
+                    className="stream-video-preview" 
+                  />
+                  <div className="stream-live-overlay-tag">
+                    <span className="live-pulse-dot"></span> LIVE CATWALK FEED • 1,420 VIEWERS
+                  </div>
+                  <div className="stream-video-controls">
+                    <span>▶ Playing • 1080p 60fps</span>
+                    <span>🔊 Audio Active • Dolby Atmos</span>
+                  </div>
+                </div>
+
+                <div className="stream-modal-footer">
+                  <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                    Stream Portal Link: <span style={{ color: '#38bdf8' }}>{streamUrl}</span>
+                  </div>
+                  <a 
+                    href={streamUrl} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="btn-couture btn-secondary-couture"
+                    style={{ fontSize: '0.75rem', padding: '6px 12px', background: '#222', color: '#fff' }}
+                  >
+                    Open in External Tab ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Virtual Pass Management Split Layout */}
           <div className="seating-split-layout">
@@ -363,13 +423,13 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
 
                       <h3 className="virtual-column-title">{sec.name}</h3>
                       
-                      {/* Live Progress Bar */}
+                      {/* Live Progress Bar — Neutral Luxury Black for all tiers */}
                       <div className="capacity-meter-bar">
                         <div 
                           className="capacity-meter-fill" 
                           style={{ 
                             width: `${Math.min(capacityPct, 100)}%`,
-                            background: capacityPct >= 100 ? '#dc2626' : '#111111'
+                            background: '#111111'
                           }}
                         ></div>
                       </div>
