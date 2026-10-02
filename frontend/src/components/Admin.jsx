@@ -42,7 +42,7 @@ export default function Admin({ selectedEvent, users, separationRules, sections,
     e.preventDefault();
     if (!brandA.trim() || !brandB.trim()) return;
 
-    onAddSeparationRule(brandA.trim(), brandB.trim());
+    onAddSeparationRule({ brandA: brandA.trim(), brandB: brandB.trim() });
 
     setBrandA('');
     setBrandB('');

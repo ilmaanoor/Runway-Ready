@@ -1,10 +1,19 @@
 import sqlite3
 import os
+import shutil
 from flask import Flask, request
 
 app = Flask(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'runway_ready.db')
+SCRATCH_DB_PATH = r'C:\Users\Ilmaa Noor\.gemini\antigravity\scratch\runway-ready\backend\runway_ready.db'
+
+def sync_scratch_db():
+    try:
+        if os.path.exists(DB_PATH) and os.path.exists(os.path.dirname(SCRATCH_DB_PATH)):
+            shutil.copyfile(DB_PATH, SCRATCH_DB_PATH)
+    except Exception:
+        pass
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -146,6 +155,7 @@ def init_db():
 
     conn.commit()
     conn.close()
+    sync_scratch_db()
 
 # Manual CORS setup helper
 @app.after_request
@@ -203,6 +213,7 @@ def add_user():
         user_id = cursor.lastrowid
         conn.commit()
         conn.close()
+        sync_scratch_db()
         return {'id': user_id, 'name': name, 'email': email, 'role': role}, 201
     except sqlite3.IntegrityError:
         return {'error': 'Email already exists'}, 400
@@ -213,13 +224,14 @@ def delete_user(user_id):
     conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
     conn.commit()
     conn.close()
+    sync_scratch_db()
     return {'success': True}
 
 # ==================== EVENTS CRUD ROUTES ====================
 @app.route('/api/events', methods=['GET'])
 def get_events():
     conn = get_db_connection()
-    events = conn.execute('SELECT * FROM events ORDER BY id DESC').fetchall()
+    events = conn.execute('SELECT * FROM events ORDER BY id ASC').fetchall()
     conn.close()
     return [dict(e) for e in events]
 
@@ -267,20 +279,31 @@ def add_event():
 
     conn.commit()
     conn.close()
+    sync_scratch_db()
 
-    return {'id': event_id, 'name': name, 'date': date, 'type': type_}, 201
+    return {'id': event_id, 'name': name, 'date': date, 'type': type_, 'location': location, 'capacity': capacity, 'description': description}, 201
 
-@app.route('/api/events/<int:event_id>', methods=['DELETE'])
+@app.route('/api/events/<path:event_id>', methods=['DELETE', 'POST'])
 def delete_event(event_id):
+    name = (request.form.get('name') or request.values.get('name') or '').strip()
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM seat_assignments WHERE guest_id IN (SELECT id FROM guests WHERE event_id = ?)', (event_id,))
-    cursor.execute('DELETE FROM warning_log WHERE event_id = ?', (event_id,))
-    cursor.execute('DELETE FROM guests WHERE event_id = ?', (event_id,))
-    cursor.execute('DELETE FROM sections WHERE event_id = ?', (event_id,))
-    cursor.execute('DELETE FROM events WHERE id = ?', (event_id,))
+    try:
+        eid = int(event_id)
+    except:
+        eid = -1
+
+    cursor.execute('''
+        DELETE FROM seat_assignments 
+        WHERE guest_id IN (SELECT id FROM guests WHERE event_id = ? OR event_id IN (SELECT id FROM events WHERE name = ?))
+    ''', (eid, name))
+    cursor.execute('DELETE FROM warning_log WHERE event_id = ? OR event_id IN (SELECT id FROM events WHERE name = ?)', (eid, name))
+    cursor.execute('DELETE FROM guests WHERE event_id = ? OR event_id IN (SELECT id FROM events WHERE name = ?)', (eid, name))
+    cursor.execute('DELETE FROM sections WHERE event_id = ? OR event_id IN (SELECT id FROM events WHERE name = ?)', (eid, name))
+    cursor.execute('DELETE FROM events WHERE id = ? OR name = ?', (eid, name))
     conn.commit()
     conn.close()
+    sync_scratch_db()
     return {'success': True}
 
 # ==================== GUESTS CRUD ROUTES ====================
@@ -309,6 +332,7 @@ def add_guest():
     guest_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    sync_scratch_db()
 
     return {'id': guest_id, 'event_id': event_id, 'name': name, 'tier': tier, 'brand': brand, 'checked_in': 0}, 201
 
@@ -319,6 +343,7 @@ def delete_guest(guest_id):
     conn.execute('DELETE FROM guests WHERE id = ?', (guest_id,))
     conn.commit()
     conn.close()
+    sync_scratch_db()
     return {'success': True}
 
 @app.route('/api/guests/<int:guest_id>/checkin', methods=['POST'])
@@ -330,6 +355,7 @@ def toggle_checkin(guest_id):
     conn.execute('UPDATE guests SET checked_in = ? WHERE id = ?', (checked_in, guest_id))
     conn.commit()
     conn.close()
+    sync_scratch_db()
     return {'success': True, 'checked_in': checked_in}
 
 # ==================== SECTIONS CRUD ROUTES ====================
@@ -363,6 +389,7 @@ def add_rival():
     rival_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    sync_scratch_db()
 
     return {'id': rival_id, 'brand_a': brand_a, 'brand_b': brand_b}, 201
 
@@ -372,6 +399,7 @@ def delete_rival(rival_id):
     conn.execute('DELETE FROM rival_brands WHERE id = ?', (rival_id,))
     conn.commit()
     conn.close()
+    sync_scratch_db()
     return {'success': True}
 
 # ==================== SEAT ASSIGNMENTS & RULES ENGINE ====================
@@ -421,6 +449,7 @@ def assign_seat():
                        (event_id, guest_id, 'tier_mismatch', err_msg))
         conn.commit()
         conn.close()
+        sync_scratch_db()
         return {'success': False, 'error': err_msg}, 400
 
     # 2. Brand separation protocol check
@@ -461,6 +490,7 @@ def assign_seat():
 
     conn.commit()
     conn.close()
+    sync_scratch_db()
 
     return {
         'success': True,
@@ -474,6 +504,7 @@ def unassign_seat(guest_id):
     conn.execute('DELETE FROM seat_assignments WHERE guest_id = ?', (guest_id,))
     conn.commit()
     conn.close()
+    sync_scratch_db()
     return {'success': True}
 
 # ==================== REPORT & AGGREGATE ROUTES ====================
