@@ -113,11 +113,11 @@ export default function Dashboard({ currentUser, events, onAddEvent, onDeleteEve
               </div>
 
               <div className="form-group-editorial">
-                <label>Venue Location / Stream Link</label>
+                <label>{type === 'Virtual' ? 'Livestream / Zoom Meeting URL' : 'Venue Location'}</label>
                 <input 
                   type="text" 
                   className="input-editorial" 
-                  placeholder="e.g. Grand Palais, Paris / live.runway.com" 
+                  placeholder={type === 'Virtual' ? 'e.g. https://zoom.us/j/123456789 or https://meet.google.com/abc-defg' : 'e.g. Grand Palais, Paris'} 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />

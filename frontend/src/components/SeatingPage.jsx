@@ -26,15 +26,18 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const isPhysical = selectedEvent.type === 'Physical';
   const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
 
-  // Helper: Get a properly formatted, valid stream URL
+  // Helper: Get a properly formatted, valid stream / Zoom meeting URL
   const getStreamUrl = (loc) => {
-    if (!loc) return 'https://live.chanel.com/runway-broadcast';
+    if (!loc) return 'https://zoom.us/join';
     if (loc.startsWith('http://') || loc.startsWith('https://')) return loc;
+    if (loc.toLowerCase().includes('zoom')) return 'https://zoom.us/join';
     if (loc.includes('.')) return `https://${loc}`;
-    return `https://live.runway.com/${encodeURIComponent(loc.toLowerCase().replace(/\s+/g, '-'))}`;
+    return 'https://zoom.us/join';
   };
 
   const streamUrl = getStreamUrl(selectedEvent.location);
+  const isZoom = streamUrl.toLowerCase().includes('zoom');
+  const isMeet = streamUrl.toLowerCase().includes('meet.google');
 
   // Helper: Detect if an assigned seat has an adjacent brand separation conflict (Physical only)
   const isSeatInConflict = (sectionId, position, assignedGuestBrand) => {
@@ -281,22 +284,35 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
           <div className="virtual-stream-banner-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
-                <span className="live-stream-badge">🔴 LIVE BROADCAST STREAM</span>
+                <span className="live-stream-badge">
+                  {isZoom ? '🎥 LIVE ZOOM BROADCAST' : isMeet ? '📹 LIVE GOOGLE MEET' : '🔴 LIVE BROADCAST STREAM'}
+                </span>
                 <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', marginTop: '6px' }}>
                   {selectedEvent.name} — Digital Portal
                 </h2>
                 <p style={{ fontSize: '0.85rem', color: '#ccc', marginTop: '4px' }}>
-                  Secure Stream URL: <strong style={{ color: '#38bdf8' }}>{streamUrl}</strong>
+                  {isZoom ? 'Zoom Meeting URL: ' : isMeet ? 'Google Meet URL: ' : 'Stream URL: '}
+                  <strong style={{ color: '#38bdf8' }}>{streamUrl}</strong>
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <button 
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <a 
+                  href={streamUrl} 
+                  target="_blank" 
+                  rel="noreferrer"
                   className="btn-couture btn-primary-couture"
-                  style={{ background: '#ffffff', color: '#000000', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  style={{ background: '#ffffff', color: '#000000', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {isZoom ? '🎥 Launch Zoom Meeting ↗' : isMeet ? '📹 Join Google Meet ↗' : '🌐 Open Stream Link ↗'}
+                </a>
+
+                <button 
+                  className="btn-couture btn-secondary-couture"
+                  style={{ background: 'transparent', color: '#ffffff', border: '1px solid #555', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   onClick={() => setShowStreamModal(true)}
                 >
-                  ▶ Open Live Stream Player
+                  ▶ In-App Stream Player
                 </button>
               </div>
             </div>
