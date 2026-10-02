@@ -1,7 +1,7 @@
 // RUNWAY READY — Main Application Root Component
 // Pure React Application built for Stella Maris College BCA Coursework
 // 2-Tier Architecture: Admin (Supervisor) & Event Coordinator (Staff)
-// Uses React State Management & Hooks with CRUD Operations and Session Persistence
+// Uses React State Management & Hooks with SQLite Database CRUD Operations
 
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
@@ -132,9 +132,36 @@ const loadFromStorage = (key, fallback) => {
   return fallback;
 };
 
+// ==========================================
+// SQLITE BACKEND API CONNECTOR
+// ==========================================
+const API_BASE = 'http://127.0.0.1:5000/api';
+
+const sendApiRequest = async (endpoint, method = 'POST', data = {}) => {
+  try {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (data[key] !== undefined && data[key] !== null) {
+        formData.append(key, data[key]);
+      }
+    });
+
+    const options = { method: method };
+    if (method !== 'GET' && method !== 'DELETE') {
+      options.body = formData;
+    }
+
+    const res = await fetch(`${API_BASE}${endpoint}`, options);
+    return res;
+  } catch (err) {
+    // Graceful offline fallback: local state continues smoothly
+    return null;
+  }
+};
+
 export default function App() {
   // =========================================================================
-  // REACT STATE MANAGEMENT (Persistent Client-Side Database State)
+  // REACT STATE MANAGEMENT (Persistent Client-Side & SQLite Database State)
   // =========================================================================
   const [currentUser, setCurrentUser] = useState(() => loadFromStorage('rr_user', null));
   const [activePage, setActivePage] = useState(() => loadFromStorage('rr_page', 'login'));
@@ -198,6 +225,7 @@ export default function App() {
     if (user) {
       setCurrentUser(user);
       setActivePage('dashboard');
+      sendApiRequest('/login', 'POST', { email, password });
       return { success: true };
     }
     return { success: false, message: 'Invalid email or password' };
@@ -211,7 +239,7 @@ export default function App() {
   };
 
   // =========================================================================
-  // CRUD OPERATIONS: CREATE
+  // CRUD OPERATIONS: CREATE (Syncs to SQLite Database & React State)
   // =========================================================================
   
   // 1. Create Event
@@ -272,6 +300,17 @@ export default function App() {
     setEvents(prev => [...prev, newEvent]);
     setSections(prev => [...prev, ...newSections]);
     setSelectedEvent(newEvent);
+
+    // Sync write directly to SQLite Database
+    sendApiRequest('/events', 'POST', {
+      name: newEvent.name,
+      date: newEvent.date,
+      type: newEvent.type,
+      location: newEvent.location,
+      capacity: newEvent.capacity,
+      description: newEvent.description
+    });
+
     return newEvent;
   };
 
@@ -288,6 +327,15 @@ export default function App() {
       checked_in: 0
     };
     setGuests(prev => [...prev, newGuest]);
+
+    // Sync write directly to SQLite Database
+    sendApiRequest('/guests', 'POST', {
+      event_id: selectedEvent.id,
+      name: newGuest.name,
+      tier: newGuest.tier,
+      brand: newGuest.brand
+    });
+
     return newGuest;
   };
 
@@ -300,6 +348,13 @@ export default function App() {
       brandB: ruleData.brandB.trim()
     };
     setSeparationRules(prev => [...prev, newRule]);
+
+    // Sync write directly to SQLite Database
+    sendApiRequest('/rivals', 'POST', {
+      brand_a: newRule.brandA,
+      brand_b: newRule.brandB
+    });
+
     return newRule;
   };
 
@@ -314,6 +369,15 @@ export default function App() {
       role: userData.role || 'coordinator'
     };
     setUsers(prev => [...prev, newUser]);
+
+    // Sync write directly to SQLite Database
+    sendApiRequest('/users', 'POST', {
+      name: newUser.name,
+      email: newUser.email,
+      password: newUser.password,
+      role: newUser.role
+    });
+
     return newUser;
   };
 
@@ -355,17 +419,22 @@ export default function App() {
     });
 
   // =========================================================================
-  // CRUD OPERATIONS: UPDATE
+  // CRUD OPERATIONS: UPDATE (Syncs to SQLite Database & React State)
   // =========================================================================
   
   // 1. Update Check-In Status
   const handleToggleCheckIn = (guestId) => {
+    let nextCheckedIn = 0;
     setGuests(prev => prev.map(g => {
       if (g.id === Number(guestId)) {
-        return { ...g, checked_in: g.checked_in === 1 ? 0 : 1 };
+        nextCheckedIn = g.checked_in === 1 ? 0 : 1;
+        return { ...g, checked_in: nextCheckedIn };
       }
       return g;
     }));
+
+    // Sync write directly to SQLite Database
+    sendApiRequest(`/guests/${guestId}/checkin`, 'POST', { checked_in: nextCheckedIn });
   };
 
   // 2. Update Seat Assignment with Rule Conflict Detection
@@ -462,6 +531,13 @@ export default function App() {
       }];
     });
 
+    // Sync write directly to SQLite Database
+    sendApiRequest('/assign_seat', 'POST', {
+      guest_id: numGuestId,
+      section_id: numSectionId,
+      position: numPosition
+    });
+
     return { 
       success: true, 
       message: `Assigned ${guest.name} to ${section.name} (Seat #${numPosition})`,
@@ -470,13 +546,14 @@ export default function App() {
   };
 
   // =========================================================================
-  // CRUD OPERATIONS: DELETE
+  // CRUD OPERATIONS: DELETE (Syncs to SQLite Database & React State)
   // =========================================================================
   
   // 1. Delete Seat Assignment
   const handleUnassignSeat = (guestId) => {
     const numId = Number(guestId);
     setSeatAssignments(prev => prev.filter(a => Number(a.guestId || a.guest_id) !== numId));
+    sendApiRequest(`/unassign_seat/${numId}`, 'DELETE');
   };
 
   // 2. Delete Guest
@@ -484,6 +561,7 @@ export default function App() {
     const numId = Number(guestId);
     setGuests(prev => prev.filter(g => g.id !== numId));
     setSeatAssignments(prev => prev.filter(a => Number(a.guestId || a.guest_id) !== numId));
+    sendApiRequest(`/guests/${numId}`, 'DELETE');
   };
 
   // 3. Delete Event (Cascade removes related guests, sections, assignments)
@@ -501,18 +579,21 @@ export default function App() {
       const remaining = events.filter(e => e.id !== numId);
       setSelectedEvent(remaining[0] || null);
     }
+    sendApiRequest(`/events/${numId}`, 'DELETE');
   };
 
   // 4. Delete Separation Rule
   const handleDeleteSeparationRule = (ruleId) => {
     const numId = Number(ruleId);
     setSeparationRules(prev => prev.filter(r => r.id !== numId));
+    sendApiRequest(`/rivals/${numId}`, 'DELETE');
   };
 
   // 5. Delete User
   const handleDeleteUser = (userId) => {
     const numId = Number(userId);
     setUsers(prev => prev.filter(u => u.id !== numId));
+    sendApiRequest(`/users/${numId}`, 'DELETE');
   };
 
   // =========================================================================
