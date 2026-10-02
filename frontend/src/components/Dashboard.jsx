@@ -18,11 +18,26 @@ export default function Dashboard({ currentUser, events, onAddEvent, onDeleteEve
     e.preventDefault();
     if (!name || !date) return;
 
+    let finalLocation = location.trim();
+    if (type === 'Virtual') {
+      if (!finalLocation) {
+        finalLocation = 'https://zoom.us/join';
+      } else if (!finalLocation.startsWith('http://') && !finalLocation.startsWith('https://')) {
+        if (finalLocation.includes('zoom.us') || finalLocation.includes('.')) {
+          finalLocation = `https://${finalLocation}`;
+        } else {
+          finalLocation = 'https://zoom.us/join';
+        }
+      }
+    } else {
+      if (!finalLocation) finalLocation = 'Grand Palais, Paris';
+    }
+
     onAddEvent({
       name,
       date,
       type,
-      location: location || (type === 'Physical' ? 'Runway Arena' : 'Livestream Portal'),
+      location: finalLocation,
       capacity: parseInt(capacity) || 100,
       description: description || 'Exclusive Runway Showcase'
     });

@@ -42,7 +42,7 @@ const INITIAL_EVENTS = [
     name: 'Chanel Virtual Runway Experience', 
     date: '2026-11-05', 
     type: 'Virtual', 
-    location: 'https://live.chanel.com', 
+    location: 'https://zoom.us/join', 
     capacity: 500, 
     description: 'Global Digital Livestream & Interactive VR Access' 
   }

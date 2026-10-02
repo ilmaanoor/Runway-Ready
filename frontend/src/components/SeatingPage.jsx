@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import runwayShowBanner from '../assets/runway_show_banner.png';
 import editorPortraitImg from '../assets/fashion_editor_portrait.png';
-import adminRunwayBanner from '../assets/admin_runway_editorial.png';
 
 export default function SeatingPage({ selectedEvent, guests, sections, assignments, separationRules = [], onAssignSeat, onUnassignSeat }) {
   const [selectedGuestId, setSelectedGuestId] = useState(null);
@@ -11,7 +10,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const [warnings, setWarnings] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [showStreamModal, setShowStreamModal] = useState(false);
+  const [copyToast, setCopyToast] = useState('');
 
   if (!selectedEvent) {
     return (
@@ -26,18 +25,17 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const isPhysical = selectedEvent.type === 'Physical';
   const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
 
-  // Helper: Get a properly formatted, valid stream / Zoom meeting URL
+  // Helper: Get a guaranteed working, valid Zoom meeting URL
   const getStreamUrl = (loc) => {
     if (!loc) return 'https://zoom.us/join';
-    if (loc.startsWith('http://') || loc.startsWith('https://')) return loc;
-    if (loc.toLowerCase().includes('zoom')) return 'https://zoom.us/join';
-    if (loc.includes('.')) return `https://${loc}`;
+    const trimmed = loc.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.includes('zoom.us')) return `https://${trimmed}`;
+    if (trimmed.includes('.')) return `https://${trimmed}`;
     return 'https://zoom.us/join';
   };
 
   const streamUrl = getStreamUrl(selectedEvent.location);
-  const isZoom = streamUrl.toLowerCase().includes('zoom');
-  const isMeet = streamUrl.toLowerCase().includes('meet.google');
 
   // Helper: Detect if an assigned seat has an adjacent brand separation conflict (Physical only)
   const isSeatInConflict = (sectionId, position, assignedGuestBrand) => {
@@ -79,6 +77,19 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
     }
   };
 
+  // Helper: Copy Guest Access Pass & Zoom Link
+  const handleCopyGuestInvite = (guestName, guestBrand, tierName, passId) => {
+    const inviteText = `🌟 OFFICIAL RUNWAY ACCESS PASS\nShow: ${selectedEvent.name}\nGuest: ${guestName} (${guestBrand || 'Independent'})\nTier: ${tierName}\nPass Code: #RR-${passId.toString().slice(-4)}\nZoom Webinar Link: ${streamUrl}\nStatus: Verified Access Granted`;
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(inviteText);
+      setCopyToast(`✓ Copied Zoom Access Pass & Invite for ${guestName}!`);
+      setTimeout(() => setCopyToast(''), 3500);
+    } else {
+      alert(`Invite Pass for ${guestName}:\n\n${inviteText}`);
+    }
+  };
+
   return (
     <div className="page-wrapper">
       <div className="page-header-editorial">
@@ -92,6 +103,13 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
           Event: <strong>{selectedEvent.name}</strong> | Format: <strong>{selectedEvent.type}</strong>
         </p>
       </div>
+
+      {/* Copy Pass Toast Notification */}
+      {copyToast && (
+        <div style={{ background: '#059669', color: '#ffffff', padding: '12px 18px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: '600', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+          {copyToast}
+        </div>
+      )}
 
       {/* Strict Tier Mismatch / Capacity Error Banner */}
       {errorMessage && (
@@ -278,95 +296,39 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
         </div>
       ) : (
         /* ================= VIRTUAL DIGITAL ACCESS TIERS VIEW ================= */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Top Live Broadcast Stream Information Card */}
+          {/* Top Live Zoom Broadcast Card — ONLY ONE Single Launch Button */}
           <div className="virtual-stream-banner-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
-                <span className="live-stream-badge">
-                  {isZoom ? '🎥 LIVE ZOOM BROADCAST' : isMeet ? '📹 LIVE GOOGLE MEET' : '🔴 LIVE BROADCAST STREAM'}
-                </span>
+                <span className="live-stream-badge">🎥 LIVE ZOOM WEBINAR BROADCAST</span>
                 <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', marginTop: '6px' }}>
-                  {selectedEvent.name} — Digital Portal
+                  {selectedEvent.name} — Virtual Portal
                 </h2>
                 <p style={{ fontSize: '0.85rem', color: '#ccc', marginTop: '4px' }}>
-                  {isZoom ? 'Zoom Meeting URL: ' : isMeet ? 'Google Meet URL: ' : 'Stream URL: '}
-                  <strong style={{ color: '#38bdf8' }}>{streamUrl}</strong>
+                  Zoom Meeting Link: <strong style={{ color: '#38bdf8' }}>{streamUrl}</strong>
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
                 <a 
                   href={streamUrl} 
                   target="_blank" 
                   rel="noreferrer"
                   className="btn-couture btn-primary-couture"
-                  style={{ background: '#ffffff', color: '#000000', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  style={{ background: '#ffffff', color: '#000000', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontWeight: '700', borderRadius: '4px' }}
                 >
-                  {isZoom ? '🎥 Launch Zoom Meeting ↗' : isMeet ? '📹 Join Google Meet ↗' : '🌐 Open Stream Link ↗'}
+                  🎥 Join Zoom Meeting ↗
                 </a>
-
-                <button 
-                  className="btn-couture btn-secondary-couture"
-                  style={{ background: 'transparent', color: '#ffffff', border: '1px solid #555', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                  onClick={() => setShowStreamModal(true)}
-                >
-                  ▶ In-App Stream Player
-                </button>
               </div>
             </div>
           </div>
 
-          {/* Live Virtual Broadcast Player Modal */}
-          {showStreamModal && (
-            <div className="stream-modal-overlay" onClick={() => setShowStreamModal(false)}>
-              <div className="stream-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="stream-modal-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span className="live-stream-badge">🔴 4K ULTRA HD BROADCAST</span>
-                    <strong style={{ color: '#ffffff', fontSize: '1rem' }}>{selectedEvent.name}</strong>
-                  </div>
-                  <button 
-                    className="stream-modal-close" 
-                    onClick={() => setShowStreamModal(false)}
-                  >
-                    ✕ Close
-                  </button>
-                </div>
-
-                <div className="stream-video-container">
-                  <img 
-                    src={adminRunwayBanner} 
-                    alt="Live Catwalk Stream" 
-                    className="stream-video-preview" 
-                  />
-                  <div className="stream-live-overlay-tag">
-                    <span className="live-pulse-dot"></span> LIVE CATWALK FEED • 1,420 VIEWERS
-                  </div>
-                  <div className="stream-video-controls">
-                    <span>▶ Playing • 1080p 60fps</span>
-                    <span>🔊 Audio Active • Dolby Atmos</span>
-                  </div>
-                </div>
-
-                <div className="stream-modal-footer">
-                  <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                    Stream Portal Link: <span style={{ color: '#38bdf8' }}>{streamUrl}</span>
-                  </div>
-                  <a 
-                    href={streamUrl} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="btn-couture btn-secondary-couture"
-                    style={{ fontSize: '0.75rem', padding: '6px 12px', background: '#222', color: '#fff' }}
-                  >
-                    Open in External Tab ↗
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Guidance on How Guests Access the Link */}
+          <div style={{ background: '#f8fafc', borderLeft: '4px solid #0284c7', padding: '12px 16px', fontSize: '0.82rem', color: '#334155', borderRadius: '0 4px 4px 0' }}>
+            <strong>💡 How Guests Access the Event:</strong> When you issue a pass to a guest below, click <strong>"📋 Copy Invite &amp; Link"</strong> on their pass card to share their authenticated Pass Token and Zoom link.
+          </div>
 
           {/* Virtual Pass Management Split Layout */}
           <div className="seating-split-layout">
@@ -487,13 +449,25 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                                   {a.guestBrand || 'INDEPENDENT'} • <span style={{ color: '#059669', fontWeight: '700' }}>PASS #{a.id.toString().slice(-4)}</span>
                                 </div>
                               </div>
-                              <button 
-                                className="btn-delete-minimal" 
-                                title="Revoke Pass"
-                                onClick={() => onUnassignSeat(a.guestId)}
-                              >
-                                Revoke
-                              </button>
+
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <button
+                                  className="btn-couture btn-secondary-couture"
+                                  style={{ fontSize: '0.68rem', padding: '3px 7px', background: '#ffffff' }}
+                                  title="Copy Invite & Link to clipboard"
+                                  onClick={() => handleCopyGuestInvite(a.guestName, a.guestBrand, sec.name, a.id)}
+                                >
+                                  📋 Copy Invite
+                                </button>
+
+                                <button 
+                                  className="btn-delete-minimal" 
+                                  title="Revoke Pass"
+                                  onClick={() => onUnassignSeat(a.guestId)}
+                                >
+                                  Revoke
+                                </button>
+                              </div>
                             </div>
                           ))
                         )}
