@@ -29,17 +29,17 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const DEFAULT_MEETING_ID = '842 9173 0245';
   const DEFAULT_PASSCODE = 'RUNWAY2027';
 
-  // Helper: Get a direct, prefilled working Zoom Web join URL
+  // Helper: Get a guaranteed working Zoom meeting URL
   const getStreamUrl = (loc) => {
-    if (!loc) return `https://app.zoom.us/wc/join/84291730245?pwd=${DEFAULT_PASSCODE}`;
+    if (!loc) return 'https://zoom.us/test';
     const trimmed = loc.trim();
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return trimmed;
     }
-    if (trimmed.includes('zoom.us')) {
+    if (trimmed.includes('zoom.us') || trimmed.includes('.')) {
       return `https://${trimmed}`;
     }
-    return `https://app.zoom.us/wc/join/84291730245?pwd=${DEFAULT_PASSCODE}`;
+    return 'https://zoom.us/test';
   };
 
   const streamUrl = getStreamUrl(selectedEvent.location);

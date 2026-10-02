@@ -21,12 +21,12 @@ export default function Dashboard({ currentUser, events, onAddEvent, onDeleteEve
     let finalLocation = location.trim();
     if (type === 'Virtual') {
       if (!finalLocation) {
-        finalLocation = 'https://zoom.us/join';
+        finalLocation = 'https://zoom.us/test';
       } else if (!finalLocation.startsWith('http://') && !finalLocation.startsWith('https://')) {
         if (finalLocation.includes('zoom.us') || finalLocation.includes('.')) {
           finalLocation = `https://${finalLocation}`;
         } else {
-          finalLocation = 'https://zoom.us/join';
+          finalLocation = 'https://zoom.us/test';
         }
       }
     } else {
