@@ -25,24 +25,51 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   const isPhysical = selectedEvent.type === 'Physical';
   const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
 
-  // Default Zoom Credentials
-  const DEFAULT_MEETING_ID = '842 9173 0245';
-  const DEFAULT_PASSCODE = 'RUNWAY2027';
+  // Dynamic Credential Extractor from user's URL
+  const extractZoomDetails = (rawLoc) => {
+    const defaultUrl = 'https://zoom.us/test';
+    const defaultId = '842 9173 0245';
+    const defaultPass = 'RUNWAY2027';
 
-  // Helper: Get a guaranteed working Zoom meeting URL
-  const getStreamUrl = (loc) => {
-    if (!loc) return 'https://zoom.us/test';
-    const trimmed = loc.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
+    if (!rawLoc || !rawLoc.trim()) {
+      return { url: defaultUrl, meetingId: defaultId, passcode: defaultPass };
     }
-    if (trimmed.includes('zoom.us') || trimmed.includes('.')) {
-      return `https://${trimmed}`;
+
+    const trimmed = rawLoc.trim();
+    let finalUrl = trimmed;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      finalUrl = `https://${trimmed}`;
     }
-    return 'https://zoom.us/test';
+
+    // Try extracting meeting ID (numbers sequence of 9-11 digits)
+    const idMatch = finalUrl.match(/\/j(?:oin)?\/(\d+)/i) || finalUrl.match(/(\d{9,11})/);
+    let extractedId = defaultId;
+    if (idMatch && idMatch[1]) {
+      const rawNum = idMatch[1];
+      if (rawNum.length === 10) {
+        extractedId = `${rawNum.slice(0, 3)} ${rawNum.slice(3, 6)} ${rawNum.slice(6)}`;
+      } else if (rawNum.length === 11) {
+        extractedId = `${rawNum.slice(0, 3)} ${rawNum.slice(3, 7)} ${rawNum.slice(7)}`;
+      } else {
+        extractedId = rawNum;
+      }
+    }
+
+    // Try extracting passcode from pwd= query parameter
+    const pwdMatch = finalUrl.match(/[?&]pwd=([^&#]+)/i);
+    let extractedPass = defaultPass;
+    if (pwdMatch && pwdMatch[1]) {
+      extractedPass = decodeURIComponent(pwdMatch[1]);
+    } else if (finalUrl.includes('zoom.us/test')) {
+      extractedPass = 'RUNWAY2027';
+      extractedId = '842 9173 0245';
+    }
+
+    return { url: finalUrl, meetingId: extractedId, passcode: extractedPass };
   };
 
-  const streamUrl = getStreamUrl(selectedEvent.location);
+  const streamDetails = extractZoomDetails(selectedEvent.location);
+  const streamUrl = streamDetails.url;
 
   // Helper: Detect if an assigned seat has an adjacent brand separation conflict (Physical only)
   const isSeatInConflict = (sectionId, position, assignedGuestBrand) => {
@@ -84,9 +111,9 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
     }
   };
 
-  // Helper: Copy Guest Access Pass & Zoom Link
+  // Helper: Copy Guest Access Pass & Zoom Link (dynamically uses extracted credentials)
   const handleCopyGuestInvite = (guestId, guestName, guestBrand, tierName, passId) => {
-    const inviteText = `🌟 OFFICIAL RUNWAY ACCESS PASS — DIGITAL WEBINAR\nEvent: ${selectedEvent.name}\nGuest: ${guestName} (${guestBrand || 'Independent'})\nAccess Tier: ${tierName}\nPass Code: #RR-${passId.toString().slice(-4)}\n\n🎥 Direct Join Link: ${streamUrl}\n🔑 Meeting ID: ${DEFAULT_MEETING_ID}\n🔒 Passcode: ${DEFAULT_PASSCODE}\nStatus: Verified Access Granted`;
+    const inviteText = `🌟 OFFICIAL RUNWAY ACCESS PASS — DIGITAL WEBINAR\nEvent: ${selectedEvent.name}\nGuest: ${guestName} (${guestBrand || 'Independent'})\nAccess Tier: ${tierName}\nPass Code: #RR-${passId.toString().slice(-4)}\n\n🎥 Direct Join Link: ${streamDetails.url}\n🔑 Meeting ID: ${streamDetails.meetingId}\n🔒 Passcode: ${streamDetails.passcode}\nStatus: Verified Access Granted`;
     
     if (navigator.clipboard) {
       navigator.clipboard.writeText(inviteText);
@@ -307,11 +334,11 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                   {selectedEvent.name} — Virtual Portal
                 </h2>
                 
-                {/* Meeting Credentials */}
+                {/* Dynamic Meeting Credentials */}
                 <div style={{ display: 'flex', gap: '18px', marginTop: '8px', flexWrap: 'wrap', fontSize: '0.82rem' }}>
-                  <div>Meeting ID: <strong style={{ color: '#ffffff', letterSpacing: '0.5px' }}>{DEFAULT_MEETING_ID}</strong></div>
-                  <div>Passcode: <strong style={{ color: '#ffffff', letterSpacing: '0.5px' }}>{DEFAULT_PASSCODE}</strong></div>
-                  <div>Direct Link: <strong style={{ color: '#38bdf8' }}>{streamUrl}</strong></div>
+                  <div>Meeting ID: <strong style={{ color: '#ffffff', letterSpacing: '0.5px' }}>{streamDetails.meetingId}</strong></div>
+                  <div>Passcode: <strong style={{ color: '#ffffff', letterSpacing: '0.5px' }}>{streamDetails.passcode}</strong></div>
+                  <div>Direct Link: <strong style={{ color: '#38bdf8' }}>{streamDetails.url}</strong></div>
                 </div>
               </div>
 
@@ -331,7 +358,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
 
           {/* Guidance on How Guests Access the Link */}
           <div style={{ background: '#f8fafc', borderLeft: '4px solid #0284c7', padding: '12px 16px', fontSize: '0.82rem', color: '#334155', borderRadius: '0 4px 4px 0' }}>
-            <strong>💡 How Guests Access the Meeting:</strong> Click <strong>"📋 Copy Invite"</strong> on any issued pass below to copy the guest's verified pass token, Zoom meeting ID (<code>{DEFAULT_MEETING_ID}</code>), and passcode (<code>{DEFAULT_PASSCODE}</code>).
+            <strong>💡 How Guests Access the Meeting:</strong> Click <strong>"📋 Copy Invite"</strong> on any issued pass below to copy the guest's verified pass token, Zoom meeting ID (<code>{streamDetails.meetingId}</code>), and passcode (<code>{streamDetails.passcode}</code>).
           </div>
 
           {/* Virtual Pass Management Split Layout */}
