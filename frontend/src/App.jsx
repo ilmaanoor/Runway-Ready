@@ -81,11 +81,28 @@ const INITIAL_GUESTS = [
   { id: 5, eventId: 1, name: 'Milan Retail Buyer',tier: 'Buyer',   brand: 'Prada',       checked_in: 0 }
 ];
 
+// Initial Seated Guests
+const INITIAL_ASSIGNMENTS = [
+  { id: 1, guestId: 1, guest_id: 1, guestName: 'Anna Wintour', guestBrand: 'Chanel', guestTier: 'VIP', sectionId: 1, section_id: 1, sectionName: 'Front Row A (VIP)', position: 1 },
+  { id: 2, guestId: 2, guest_id: 2, guestName: 'Bernard Arnault', guestBrand: 'Dior', guestTier: 'VIP', sectionId: 1, section_id: 1, sectionName: 'Front Row A (VIP)', position: 2 },
+  { id: 3, guestId: 3, guest_id: 3, guestName: 'Edward Enninful', guestBrand: 'Vogue', guestTier: 'Press', sectionId: 2, section_id: 2, sectionName: 'Press Box B (Press)', position: 1 }
+];
+
 // Seating Separation Protocol: pairs of brands with separation guidelines
 const INITIAL_SEPARATION = [
   { id: 1, brandA: 'Chanel', brandB: 'Dior' },
   { id: 2, brandA: 'Gucci',  brandB: 'Balenciaga' },
   { id: 3, brandA: 'Prada',  brandB: 'Armani' }
+];
+
+const INITIAL_WARNINGS = [
+  {
+    id: 1,
+    eventId: 1,
+    guestId: 2,
+    type: 'brand_clash',
+    message: 'Brand Separation Alert: Bernard Arnault (Dior) is adjacent to Anna Wintour (Chanel) at Seat #1'
+  }
 ];
 
 export default function App() {
@@ -98,9 +115,9 @@ export default function App() {
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [guests, setGuests] = useState(INITIAL_GUESTS);
   const [sections, setSections] = useState(INITIAL_SECTIONS);
-  const [seatAssignments, setSeatAssignments] = useState([]);
+  const [seatAssignments, setSeatAssignments] = useState(INITIAL_ASSIGNMENTS);
   const [separationRules, setSeparationRules] = useState(INITIAL_SEPARATION);
-  const [warningLogs, setWarningLogs] = useState([]);
+  const [warningLogs, setWarningLogs] = useState(INITIAL_WARNINGS);
   const [selectedEvent, setSelectedEvent] = useState(INITIAL_EVENTS[0]);
 
   // Keep selectedEvent valid if events list updates
@@ -236,14 +253,41 @@ export default function App() {
   };
 
   // =========================================================================
-  // CRUD OPERATIONS: READ (Selectors & Helpers)
+  // CRUD OPERATIONS: READ (Selectors & Complete View Models)
   // =========================================================================
   const eventGuests = guests.filter(g => selectedEvent && g.eventId === selectedEvent.id);
   const eventSections = sections.filter(s => selectedEvent && s.eventId === selectedEvent.id);
-  const eventAssignments = seatAssignments.filter(a => {
-    const guest = guests.find(g => g.id === a.guestId || g.id === a.guest_id);
-    return guest && selectedEvent && guest.eventId === selectedEvent.id;
-  });
+  
+  // Attach enriched guest and section details to each assignment
+  const eventAssignments = seatAssignments
+    .filter(a => {
+      const gId = a.guestId || a.guest_id;
+      const guest = guests.find(g => g.id === gId);
+      return guest && selectedEvent && guest.eventId === selectedEvent.id;
+    })
+    .map(a => {
+      const gId = a.guestId || a.guest_id;
+      const sId = a.sectionId || a.section_id;
+      const guest = guests.find(g => g.id === gId);
+      const section = sections.find(s => s.id === sId);
+      return {
+        ...a,
+        guestId: guest ? guest.id : gId,
+        guest_id: guest ? guest.id : gId,
+        guestName: guest ? guest.name : (a.guestName || ''),
+        guest_name: guest ? guest.name : (a.guest_name || ''),
+        guestBrand: guest ? guest.brand : (a.guestBrand || ''),
+        guest_brand: guest ? guest.brand : (a.guest_brand || ''),
+        guestTier: guest ? guest.tier : (a.guestTier || ''),
+        guest_tier: guest ? guest.tier : (a.guest_tier || ''),
+        checked_in: guest ? guest.checked_in : 0,
+        sectionId: section ? section.id : sId,
+        section_id: section ? section.id : sId,
+        sectionName: section ? section.name : (a.sectionName || ''),
+        section_name: section ? section.name : (a.section_name || ''),
+        position: Number(a.position)
+      };
+    });
 
   // =========================================================================
   // CRUD OPERATIONS: UPDATE
@@ -252,7 +296,7 @@ export default function App() {
   // 1. Update Check-In Status
   const handleToggleCheckIn = (guestId) => {
     setGuests(prev => prev.map(g => {
-      if (g.id === guestId) {
+      if (g.id === Number(guestId)) {
         return { ...g, checked_in: g.checked_in === 1 ? 0 : 1 };
       }
       return g;
@@ -261,8 +305,12 @@ export default function App() {
 
   // 2. Update Seat Assignment with Rule Conflict Detection
   const handleAssignSeat = (guestId, sectionId, position) => {
-    const guest = guests.find(g => g.id === guestId);
-    const section = sections.find(s => s.id === sectionId);
+    const numGuestId = Number(guestId);
+    const numSectionId = Number(sectionId);
+    const numPosition = Number(position);
+
+    const guest = guests.find(g => g.id === numGuestId);
+    const section = sections.find(s => s.id === numSectionId);
 
     if (!guest || !section) return { success: false, error: 'Guest or Section not found' };
 
@@ -280,21 +328,31 @@ export default function App() {
     }
 
     // Check brand separation rules with neighbors
-    const leftNeighbor = seatAssignments.find(a => (a.sectionId === sectionId || a.section_id === sectionId) && a.position === position - 1);
-    const rightNeighbor = seatAssignments.find(a => (a.sectionId === sectionId || a.section_id === sectionId) && a.position === position + 1);
+    const leftNeighbor = seatAssignments.find(a => 
+      (Number(a.sectionId || a.section_id) === numSectionId) && 
+      Number(a.position) === numPosition - 1
+    );
+    const rightNeighbor = seatAssignments.find(a => 
+      (Number(a.sectionId || a.section_id) === numSectionId) && 
+      Number(a.position) === numPosition + 1
+    );
 
     const checkClash = (neighborAssign) => {
       if (!neighborAssign) return null;
-      const neighborGuest = guests.find(g => g.id === (neighborAssign.guestId || neighborAssign.guest_id));
+      const nId = Number(neighborAssign.guestId || neighborAssign.guest_id);
+      const neighborGuest = guests.find(g => g.id === nId);
       if (!neighborGuest || !neighborGuest.brand || !guest.brand) return null;
 
+      const gBrand = guest.brand.trim().toLowerCase();
+      const nBrand = neighborGuest.brand.trim().toLowerCase();
+
       const isSeparated = separationRules.some(r =>
-        (r.brandA.toLowerCase() === guest.brand.toLowerCase() && r.brandB.toLowerCase() === neighborGuest.brand.toLowerCase()) ||
-        (r.brandB.toLowerCase() === guest.brand.toLowerCase() && r.brandA.toLowerCase() === neighborGuest.brand.toLowerCase())
+        (r.brandA.toLowerCase() === gBrand && r.brandB.toLowerCase() === nBrand) ||
+        (r.brandB.toLowerCase() === gBrand && r.brandA.toLowerCase() === nBrand)
       );
 
       if (isSeparated) {
-        return `Brand Separation Alert: ${guest.name} (${guest.brand}) is adjacent to ${neighborGuest.name} (${neighborGuest.brand}) at Seat #${neighborAssign.position}`;
+        return `Brand Separation Alert: '${guest.name}' (${guest.brand}) is adjacent to '${neighborGuest.name}' (${neighborGuest.brand}) at Seat #${neighborAssign.position}`;
       }
       return null;
     };
@@ -302,8 +360,10 @@ export default function App() {
     const leftClash = checkClash(leftNeighbor);
     const rightClash = checkClash(rightNeighbor);
     const clashMsg = leftClash || rightClash;
+    const warningsList = [];
 
     if (clashMsg) {
+      warningsList.push({ type: 'brand_clash', message: clashMsg });
       setWarningLogs(prev => [{
         id: Date.now(),
         eventId: selectedEvent.id,
@@ -315,18 +375,33 @@ export default function App() {
 
     // Update assignment list
     setSeatAssignments(prev => {
-      const filtered = prev.filter(a => (a.guestId !== guestId && a.guest_id !== guestId) && !((a.sectionId === sectionId || a.section_id === sectionId) && a.position === position));
+      const filtered = prev.filter(a => 
+        Number(a.guestId || a.guest_id) !== numGuestId && 
+        !(Number(a.sectionId || a.section_id) === numSectionId && Number(a.position) === numPosition)
+      );
       return [...filtered, {
-        id: prev.length > 0 ? Math.max(...prev.map(a => a.id)) + 1 : 1,
-        guestId: guestId,
-        guest_id: guestId,
-        sectionId: sectionId,
-        section_id: sectionId,
-        position: position
+        id: prev.length > 0 ? Math.max(...prev.map(a => a.id || 0)) + 1 : 1,
+        guestId: guest.id,
+        guest_id: guest.id,
+        guestName: guest.name,
+        guest_name: guest.name,
+        guestBrand: guest.brand,
+        guest_brand: guest.brand,
+        guestTier: guest.tier,
+        guest_tier: guest.tier,
+        sectionId: section.id,
+        section_id: section.id,
+        sectionName: section.name,
+        section_name: section.name,
+        position: numPosition
       }];
     });
 
-    return { success: true, warning: clashMsg };
+    return { 
+      success: true, 
+      message: `Assigned ${guest.name} to ${section.name} (Seat #${numPosition})`,
+      warnings: warningsList 
+    };
   };
 
   // =========================================================================
@@ -335,38 +410,44 @@ export default function App() {
   
   // 1. Delete Seat Assignment
   const handleUnassignSeat = (guestId) => {
-    setSeatAssignments(prev => prev.filter(a => a.guestId !== guestId && a.guest_id !== guestId));
+    const numId = Number(guestId);
+    setSeatAssignments(prev => prev.filter(a => Number(a.guestId || a.guest_id) !== numId));
   };
 
   // 2. Delete Guest
   const handleDeleteGuest = (guestId) => {
-    setGuests(prev => prev.filter(g => g.id !== guestId));
-    setSeatAssignments(prev => prev.filter(a => a.guestId !== guestId && a.guest_id !== guestId));
+    const numId = Number(guestId);
+    setGuests(prev => prev.filter(g => g.id !== numId));
+    setSeatAssignments(prev => prev.filter(a => Number(a.guestId || a.guest_id) !== numId));
   };
 
   // 3. Delete Event (Cascade removes related guests, sections, assignments)
   const handleDeleteEvent = (eventId) => {
-    setEvents(prev => prev.filter(e => e.id !== eventId));
-    setGuests(prev => prev.filter(g => g.eventId !== eventId));
-    setSections(prev => prev.filter(s => s.eventId !== eventId));
+    const numId = Number(eventId);
+    setEvents(prev => prev.filter(e => e.id !== numId));
+    setGuests(prev => prev.filter(g => g.eventId !== numId));
+    setSections(prev => prev.filter(s => s.eventId !== numId));
     setSeatAssignments(prev => prev.filter(a => {
-      const g = guests.find(guest => guest.id === a.guestId || guest.id === a.guest_id);
-      return g && g.eventId !== eventId;
+      const gId = Number(a.guestId || a.guest_id);
+      const g = guests.find(guest => guest.id === gId);
+      return g && g.eventId !== numId;
     }));
-    if (selectedEvent && selectedEvent.id === eventId) {
-      const remaining = events.filter(e => e.id !== eventId);
+    if (selectedEvent && selectedEvent.id === numId) {
+      const remaining = events.filter(e => e.id !== numId);
       setSelectedEvent(remaining[0] || null);
     }
   };
 
   // 4. Delete Separation Rule
   const handleDeleteSeparationRule = (ruleId) => {
-    setSeparationRules(prev => prev.filter(r => r.id !== ruleId));
+    const numId = Number(ruleId);
+    setSeparationRules(prev => prev.filter(r => r.id !== numId));
   };
 
   // 5. Delete User
   const handleDeleteUser = (userId) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
+    const numId = Number(userId);
+    setUsers(prev => prev.filter(u => u.id !== numId));
   };
 
   // =========================================================================
