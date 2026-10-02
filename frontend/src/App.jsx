@@ -442,6 +442,8 @@ export default function App() {
               <EventReport 
                 selectedEvent={selectedEvent}
                 guests={guests.filter(g => g.eventId === selectedEvent.id)}
+                sections={sections.filter(s => s.eventId === selectedEvent.id)}
+                assignments={seatAssignments.filter(s => s.eventId === selectedEvent.id)}
                 warningLogs={warningLogs.filter(w => w.eventId === selectedEvent.id)}
               />
             )}

@@ -1,7 +1,7 @@
 // EventReport.jsx — Pure React Post-Event Analytics & Protocol Audit Logs
 import React from 'react';
 
-export default function EventReport({ selectedEvent, guests, warningLogs }) {
+export default function EventReport({ selectedEvent, guests = [], sections = [], assignments = [], warningLogs = [] }) {
   if (!selectedEvent) {
     return (
       <div className="page-wrapper">
@@ -12,30 +12,47 @@ export default function EventReport({ selectedEvent, guests, warningLogs }) {
     );
   }
 
+  const isPhysical = selectedEvent.type === 'Physical';
+
   // 1. Overall Attendance Metrics
   const totalGuests = guests.length;
   const checkedInGuests = guests.filter(g => g.checked_in === 1).length;
   const notArrivedGuests = totalGuests - checkedInGuests;
-  // Attendance rate = percentage of guests who checked in
   const attendanceRate = totalGuests > 0 ? Math.round((checkedInGuests / totalGuests) * 100) : 0;
-  // Non-arrival rate = percentage who have NOT checked in
   const nonArrivalRate = totalGuests > 0 ? Math.round((notArrivedGuests / totalGuests) * 100) : 0;
 
-  // 2. Per-Tier Attendance Breakdown
+  // Total Section Capacity
+  const totalCapacity = sections.reduce((sum, s) => sum + s.capacity, 0) || selectedEvent.capacity || 100;
+  const totalIssued = assignments.length;
+  const passUtilizationPct = totalCapacity > 0 ? Math.round((totalIssued / totalCapacity) * 100) : 0;
+
+  // 2. Per-Tier Breakdown
   const tiers = ['VIP', 'Press', 'Buyer', 'General'];
   const tierStats = tiers.map(tierName => {
     const tierGuests = guests.filter(g => g.tier.toUpperCase() === tierName.toUpperCase());
     const total = tierGuests.length;
     const checkedIn = tierGuests.filter(g => g.checked_in === 1).length;
     const notArrived = total - checkedIn;
-    // Non-arrival rate for this tier
-    const nonArrivalPct = total > 0 ? Math.round((notArrived / total) * 100) : 0;
-    // Attendance rate for this tier
     const arrivalPct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
-    return { tier: tierName, total, checkedIn, notArrived, nonArrivalPct, arrivalPct };
+    
+    // Find matching section for capacity
+    const sec = sections.find(s => s.allowed_tier.toUpperCase() === tierName.toUpperCase());
+    const secCap = sec ? sec.capacity : Math.round(totalCapacity * 0.25);
+    const secAssignments = assignments.filter(a => sec && a.sectionId === sec.id);
+
+    return { 
+      tier: tierName, 
+      total, 
+      checkedIn, 
+      notArrived, 
+      arrivalPct,
+      secCap,
+      issuedPasses: secAssignments.length,
+      tierNameFull: sec ? sec.name : `${tierName} Stream`
+    };
   });
 
-  // 3. Seating Protocol Alerts count
+  // 3. Physical Seating Protocol Alerts count
   const protocolAlerts = warningLogs.filter(w => w.type === 'separation_alert').length;
   const tierMismatches = warningLogs.filter(w => w.type === 'tier_mismatch').length;
   const capacityIssues = warningLogs.filter(w => w.type === 'capacity_full').length;
@@ -43,50 +60,78 @@ export default function EventReport({ selectedEvent, guests, warningLogs }) {
   return (
     <div className="page-wrapper">
       <div className="page-header-editorial">
-        <span className="section-kicker">POST-EVENT ANALYTICAL DASHBOARD</span>
-        <h1 className="page-title">Event Performance Report</h1>
-        <p className="page-description">Show: <strong>{selectedEvent.name}</strong> ({selectedEvent.type})</p>
+        <span className="section-kicker">
+          {isPhysical ? 'POST-EVENT ANALYTICAL DASHBOARD' : 'VIRTUAL LIVESTREAM ANALYTICS & AUDIT'}
+        </span>
+        <h1 className="page-title">
+          {isPhysical ? 'Event Performance Report' : 'Virtual Stream Analytics & Roster'}
+        </h1>
+        <p className="page-description">
+          Show: <strong>{selectedEvent.name}</strong> | Format: <strong>{selectedEvent.type}</strong>
+        </p>
       </div>
 
       <div>
-        {/* Top Row Metrics */}
+        {/* Top Row Metrics: 3 Oversized Metric Cards tailored for Physical vs Virtual */}
         <div className="top-metrics-row">
-          {/* Metric 1: Attendance Rate */}
+          
+          {/* Metric 1 */}
           <div className="oversized-metric-card">
             <div className="metric-number-massive">{attendanceRate}%</div>
-            <div className="metric-label-gray">Check-In Rate</div>
-            <div style={{ fontSize: '0.78rem', color: '#aaa', marginTop: '4px' }}>
-              {checkedInGuests} of {totalGuests} guests arrived
+            <div className="metric-label-gray">
+              {isPhysical ? 'Gate Check-In Rate' : 'Livestream Check-In Rate'}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#888', marginTop: '4px' }}>
+              {checkedInGuests} of {totalGuests} guests verified online
             </div>
           </div>
 
-          {/* Metric 2: Non-Arrival Rate (replaces "No-Show %" — more professional) */}
+          {/* Metric 2 */}
           <div className="oversized-metric-card">
-            <div className="metric-number-massive">{nonArrivalRate}%</div>
-            <div className="metric-label-gray">Non-Arrival Rate</div>
-            <div style={{ fontSize: '0.78rem', color: '#aaa', marginTop: '4px' }}>
-              {notArrivedGuests} guest{notArrivedGuests !== 1 ? 's' : ''} did not check in
+            <div className="metric-number-massive">
+              {isPhysical ? `${nonArrivalRate}%` : `${passUtilizationPct}%`}
+            </div>
+            <div className="metric-label-gray">
+              {isPhysical ? 'Non-Arrival Rate' : 'Server Pass Utilization'}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#888', marginTop: '4px' }}>
+              {isPhysical 
+                ? `${notArrivedGuests} guest${notArrivedGuests !== 1 ? 's' : ''} absent from venue` 
+                : `${totalIssued} of ${totalCapacity} digital passes issued`
+              }
             </div>
           </div>
 
-          {/* Metric 3: Seating Protocol Alerts (replaces "Rule Conflicts Predicted") */}
+          {/* Metric 3 */}
           <div className="oversized-metric-card">
-            <div className="metric-number-massive">{warningLogs.length}</div>
-            <div className="metric-label-gray">Seating Protocol Alerts</div>
-            <div style={{ fontSize: '0.78rem', color: '#aaa', marginTop: '4px' }}>
-              {protocolAlerts} separation · {tierMismatches} tier · {capacityIssues} capacity
+            <div className="metric-number-massive">
+              {isPhysical ? warningLogs.length : checkedInGuests}
+            </div>
+            <div className="metric-label-gray">
+              {isPhysical ? 'Seating Protocol Alerts' : 'Active Live Viewers'}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#888', marginTop: '4px' }}>
+              {isPhysical 
+                ? `${protocolAlerts} separation · ${tierMismatches} tier · ${capacityIssues} capacity`
+                : `Connected to Zoom Webinar Broadcast`
+              }
             </div>
           </div>
         </div>
 
-        {/* Middle Section: Two Side-by-Side Panels */}
+        {/* Middle Section: Two Side-by-Side Grid Panels */}
         <div className="report-split-panels" style={{ marginTop: '24px' }}>
-
-          {/* Left Panel: Attendance Breakdown by Tier */}
+          
+          {/* Left Panel: Tier-wise Attendance Breakdown */}
           <div className="card-editorial">
             <div className="card-header-couture">
-              <h3>Attendance Breakdown by Tier</h3>
-              <p>Check-in status across VIP, Press, Buyer, and General tiers</p>
+              <h3>{isPhysical ? 'Attendance Breakdown by Tier' : 'Livestream Viewership by Tier'}</h3>
+              <p>
+                {isPhysical 
+                  ? 'Gate check-in status across VIP, Press, Buyer, and General tiers' 
+                  : 'Digital pass check-in & access rate per stream tier'
+                }
+              </p>
             </div>
 
             {totalGuests === 0 ? (
@@ -100,77 +145,139 @@ export default function EventReport({ selectedEvent, guests, warningLogs }) {
                       <span>
                         {t.total === 0
                           ? 'No guests'
-                          : `${t.arrivalPct}% arrived · ${t.checkedIn} checked in / ${t.total} total`}
+                          : `${t.arrivalPct}% attended · ${t.checkedIn} online / ${t.total} total`}
                       </span>
                     </div>
-                    {/* Progress bar shows check-in rate (green = arrived) */}
+                    {/* Progress bar */}
                     <div className="progress-track">
                       <div
                         className="progress-fill"
                         style={{ width: `${t.arrivalPct}%` }}
                       ></div>
                     </div>
-                    {t.notArrived > 0 && (
-                      <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '3px' }}>
-                        {t.notArrived} guest{t.notArrived !== 1 ? 's' : ''} not yet checked in
-                      </div>
-                    )}
+                    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '3px', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>{t.checkedIn} verified active</span>
+                      {!isPhysical && <span>{t.issuedPasses} / {t.secCap} Passes Issued</span>}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Right Panel: Seating Protocol Alert Log */}
+          {/* Right Panel: Protocol Audit Log (Physical) OR Verified Pass Registry (Virtual) */}
           <div className="card-editorial">
             <div className="card-header-couture">
-              <h3>Seating Protocol Alert Log</h3>
-              <p>Audit trail of all seating rule flags triggered during seat assignment</p>
+              <h3>
+                {isPhysical ? 'Seating Protocol Alert Log' : 'Verified Digital Pass Registry'}
+              </h3>
+              <p>
+                {isPhysical 
+                  ? 'Audit trail of physical seating rule flags triggered by the engine' 
+                  : 'Live audit of issued Zoom passes, tokens, and attendee authentication'
+                }
+              </p>
             </div>
 
-            {warningLogs.length === 0 ? (
-              <p style={{ color: '#7d7d7d', marginTop: '16px' }}>
-                No protocol alerts recorded. All seating rules were followed correctly.
-              </p>
+            {isPhysical ? (
+              /* Physical Conflict Warnings Table */
+              warningLogs.length === 0 ? (
+                <p style={{ color: '#7d7d7d', marginTop: '16px' }}>
+                  No protocol alerts recorded. All seating rules were followed correctly.
+                </p>
+              ) : (
+                <div className="table-editorial-wrapper" style={{ marginTop: '12px' }}>
+                  <table className="table-editorial">
+                    <thead>
+                      <tr>
+                        <th>Alert Type</th>
+                        <th>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {warningLogs.map((w, idx) => {
+                        const typeLabel =
+                          w.type === 'separation_alert' ? 'Separation Protocol' :
+                          w.type === 'tier_mismatch'    ? 'Tier Mismatch' :
+                          w.type === 'capacity_full'    ? 'Capacity Exceeded' :
+                          w.type.replace(/_/g, ' ').toUpperCase();
+
+                        const pillClass =
+                          w.type === 'separation_alert' ? 'vip' :
+                          w.type === 'tier_mismatch'    ? 'buyer' :
+                          'general';
+
+                        return (
+                          <tr key={idx}>
+                            <td>
+                              <span className={`tier-pill-minimal ${pillClass}`}>
+                                {typeLabel}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: '0.82rem', color: '#333' }}>
+                              {w.message}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
             ) : (
-              <div className="table-editorial-wrapper" style={{ marginTop: '12px' }}>
-                <table className="table-editorial">
-                  <thead>
-                    <tr>
-                      <th>Alert Type</th>
-                      <th>Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {warningLogs.map((w, idx) => {
-                      // Map internal type codes to readable professional labels
-                      const typeLabel =
-                        w.type === 'separation_alert' ? 'Separation Protocol' :
-                        w.type === 'tier_mismatch'    ? 'Tier Mismatch' :
-                        w.type === 'capacity_full'    ? 'Capacity Exceeded' :
-                        w.type.replace(/_/g, ' ').toUpperCase();
+              /* Virtual Pass Registry Table */
+              assignments.length === 0 ? (
+                <p style={{ color: '#7d7d7d', marginTop: '16px' }}>
+                  No digital passes issued yet. Go to Digital Passes tab to issue passes.
+                </p>
+              ) : (
+                <div className="table-editorial-wrapper" style={{ marginTop: '12px' }}>
+                  <table className="table-editorial">
+                    <thead>
+                      <tr>
+                        <th>Attendee &amp; Brand</th>
+                        <th>Pass Token</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assignments.map((a, idx) => {
+                        const guestObj = guests.find(g => g.id === a.guestId);
+                        const isOnline = guestObj && guestObj.checked_in === 1;
 
-                      const pillClass =
-                        w.type === 'separation_alert' ? 'vip' :
-                        w.type === 'tier_mismatch'    ? 'buyer' :
-                        'general';
-
-                      return (
-                        <tr key={idx}>
-                          <td>
-                            <span className={`tier-pill-minimal ${pillClass}`}>
-                              {typeLabel}
-                            </span>
-                          </td>
-                          <td style={{ fontSize: '0.82rem', color: '#333' }}>
-                            {w.message}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        return (
+                          <tr key={idx}>
+                            <td>
+                              <span className="guest-name-bold">{a.guestName}</span>
+                              <span className="guest-brand-uppercase" style={{ fontSize: '0.7rem', color: '#777', display: 'block' }}>
+                                {a.guestBrand || 'INDEPENDENT'} • {a.guestTier}
+                              </span>
+                            </td>
+                            <td>
+                              <span style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '0.78rem', color: '#059669', background: '#f0fdf4', padding: '2px 6px', borderRadius: '3px', border: '1px solid #bbf7d0' }}>
+                                #RR-{a.id.toString().slice(-4)}
+                              </span>
+                            </td>
+                            <td>
+                              {isOnline ? (
+                                <span style={{ color: '#059669', fontWeight: '700', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ width: '7px', height: '7px', background: '#059669', borderRadius: '50%', display: 'inline-block' }}></span>
+                                  Online Active
+                                </span>
+                              ) : (
+                                <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ width: '7px', height: '7px', background: '#94a3b8', borderRadius: '50%', display: 'inline-block' }}></span>
+                                  Pass Issued
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
             )}
           </div>
 
