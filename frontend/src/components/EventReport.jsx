@@ -21,10 +21,13 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
   const attendanceRate = totalGuests > 0 ? Math.round((checkedInGuests / totalGuests) * 100) : 0;
   const nonArrivalRate = totalGuests > 0 ? Math.round((notArrivedGuests / totalGuests) * 100) : 0;
 
-  // Total Section Capacity
+  // Total Section Capacity — use only this event's sections (props already filtered by selectedEvent)
   const totalCapacity = sections.reduce((sum, s) => sum + s.capacity, 0) || selectedEvent.capacity || 100;
   const totalIssued = assignments.length;
-  const passUtilizationPct = totalCapacity > 0 ? Math.round((totalIssued / totalCapacity) * 100) : 0;
+  // For virtual events: denominator is total guests (each guest = 1 pass needed)
+  // For physical events: denominator is total section capacity (seats)
+  const utilizationDenominator = isPhysical ? totalCapacity : (totalGuests || totalCapacity);
+  const passUtilizationPct = utilizationDenominator > 0 ? Math.round((totalIssued / utilizationDenominator) * 100) : 0;
 
   // 2. Per-Tier Breakdown
   const tiers = ['VIP', 'Press', 'Buyer', 'General'];
@@ -35,9 +38,11 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
     const notArrived = total - checkedIn;
     const arrivalPct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
     
-    // Find matching section for capacity
+    // Find matching section for this tier
     const sec = sections.find(s => s.allowed_tier.toUpperCase() === tierName.toUpperCase());
-    const secCap = sec ? sec.capacity : Math.round(totalCapacity * 0.25);
+    // Use effectiveCapacity: if more guests than section capacity, show real count
+    const rawCap = sec ? sec.capacity : Math.round(totalCapacity * 0.25);
+    const secCap = Math.max(rawCap, total);
     const secAssignments = assignments.filter(a => sec && a.sectionId === sec.id);
 
     return { 
@@ -98,7 +103,7 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
             <div style={{ fontSize: '0.78rem', color: '#888', marginTop: '4px' }}>
               {isPhysical 
                 ? `${notArrivedGuests} guest${notArrivedGuests !== 1 ? 's' : ''} absent from venue` 
-                : `${totalIssued} of ${totalCapacity} digital passes issued`
+                : `${totalIssued} of ${totalGuests} guests have digital passes`
               }
             </div>
           </div>
