@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import runwayShowBanner from '../assets/runway_show_banner.png';
 import editorPortraitImg from '../assets/fashion_editor_portrait.png';
 
-export default function SeatingPage({ selectedEvent, guests, sections, assignments, separationRules = [], onAssignSeat, onUnassignSeat }) {
+export default function SeatingPage({ selectedEvent, guests, sections, assignments, separationRules = [], onAssignSeat, onUnassignSeat, onUpdateSectionCapacity }) {
   const [selectedGuestId, setSelectedGuestId] = useState(null);
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [selectedPosition, setSelectedPosition] = useState(1);
@@ -266,13 +266,31 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
             {/* Parallel Seat Blocks Grouped by Section */}
             {sections.map(sec => {
               const secAssignments = assignments.filter(a => a.sectionId === sec.id);
+              const tierGuestCount = guests.filter(g => g.tier && g.tier.toUpperCase() === sec.allowed_tier.toUpperCase()).length;
+              const effectiveCapacity = Math.max(sec.capacity, tierGuestCount);
               return (
                 <div key={sec.id} className="seat-row-block">
-                  <h4 className="section-block-title">
-                    {sec.name} — Seats: {secAssignments.length} / {sec.capacity}
-                  </h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <h4 className="section-block-title" style={{ margin: 0 }}>
+                      {sec.name} — Seats: {secAssignments.length} / {effectiveCapacity}
+                      {tierGuestCount > sec.capacity && (
+                        <span style={{ fontSize: '0.72rem', color: '#2563eb', marginLeft: '8px', fontWeight: 'normal' }}>
+                          (auto-expanded for {tierGuestCount} guests)
+                        </span>
+                      )}
+                    </h4>
+                    {onUpdateSectionCapacity && (
+                      <button
+                        onClick={() => onUpdateSectionCapacity(sec.id, effectiveCapacity + 1)}
+                        style={{ fontSize: '0.72rem', padding: '3px 8px', border: '1px solid #d0d0d0', background: '#fff', cursor: 'pointer', borderRadius: '3px' }}
+                        title="Add one extra seat"
+                      >
+                        + Add Seat
+                      </button>
+                    )}
+                  </div>
                   <div className="seat-grid-parallel">
-                    {Array.from({ length: sec.capacity }, (_, i) => i + 1).map(pos => {
+                    {Array.from({ length: effectiveCapacity }, (_, i) => i + 1).map(pos => {
                       const assigned = secAssignments.find(a => a.position === pos);
                       const isConflict = assigned && isSeatInConflict(sec.id, pos, assigned.guestBrand);
 
@@ -418,7 +436,9 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
               <div className="virtual-four-grid">
                 {sections.map(sec => {
                   const secAssignments = assignments.filter(a => a.sectionId === sec.id);
-                  const capacityPct = Math.round((secAssignments.length / sec.capacity) * 100);
+                  const tierGuestCount = guests.filter(g => g.tier && g.tier.toUpperCase() === sec.allowed_tier.toUpperCase()).length;
+                  const effectiveCapacity = Math.max(sec.capacity, tierGuestCount);
+                  const capacityPct = effectiveCapacity > 0 ? Math.round((secAssignments.length / effectiveCapacity) * 100) : 0;
                   const matchingUnassigned = unassignedGuests.filter(g => g.tier === sec.allowed_tier);
 
                   return (
@@ -428,7 +448,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                           {sec.allowed_tier.toUpperCase()} TIER
                         </span>
                         <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#444' }}>
-                          {secAssignments.length} / {sec.capacity} Passes
+                          {secAssignments.length} / {effectiveCapacity} Passes
                         </span>
                       </div>
 

@@ -95,15 +95,7 @@ const INITIAL_SEPARATION = [
   { id: 3, brandA: 'Prada',  brandB: 'Armani' }
 ];
 
-const INITIAL_WARNINGS = [
-  {
-    id: 1,
-    eventId: 1,
-    guestId: 2,
-    type: 'brand_clash',
-    message: 'Brand Separation Alert: Bernard Arnault (Dior) is adjacent to Anna Wintour (Chanel) at Seat #1'
-  }
-];
+const INITIAL_WARNINGS = [];
 
 // ==========================================
 // STORAGE PERSISTENCE ENGINE (Pure JavaScript)
@@ -200,6 +192,8 @@ export default function App() {
   // Synchronize state with SQLite backend database on initial load
   useEffect(() => {
     const fetchBackendData = async () => {
+      // Clear any stale warnings cached from previous sessions — warnings are only generated during live seating
+      setWarningLogs([]);
       const dbEvents = await sendApiRequest('/events', 'GET');
       if (Array.isArray(dbEvents) && dbEvents.length > 0) {
         const formattedEvents = dbEvents.map(e => ({
@@ -418,14 +412,25 @@ export default function App() {
     return newEvent;
   };
 
+  // Update Section Capacity
+  const handleUpdateSectionCapacity = async (sectionId, newCapacity) => {
+    const numSecId = Number(sectionId);
+    const numCap = Number(newCapacity);
+    if (numCap < 1) return;
+
+    setSections(prev => prev.map(s => s.id === numSecId ? { ...s, capacity: numCap } : s));
+    await sendApiRequest(`/sections/${numSecId}/capacity`, 'POST', { capacity: numCap });
+  };
+
   // 2. Create / Add Guest
   const handleAddGuest = async (guestData) => {
     if (!selectedEvent) return;
+    const tierName = guestData.tier || 'General';
 
     const res = await sendApiRequest('/guests', 'POST', {
       event_id: selectedEvent.id,
       name: guestData.name,
-      tier: guestData.tier || 'General',
+      tier: tierName,
       brand: guestData.brand || 'Independent'
     });
 
@@ -435,11 +440,18 @@ export default function App() {
       id: realId,
       eventId: selectedEvent.id,
       name: guestData.name,
-      tier: guestData.tier || 'General',
+      tier: tierName,
       brand: guestData.brand || 'Independent',
       checked_in: 0
     };
     setGuests(prev => [...prev.filter(g => g.id !== realId), newGuest]);
+
+    // Auto-expand section capacity if guest count in this tier exceeds current section capacity
+    const currentTierCount = guests.filter(g => g.eventId === selectedEvent.id && g.tier.toUpperCase() === tierName.toUpperCase()).length + 1;
+    const sec = sections.find(s => s.eventId === selectedEvent.id && s.allowed_tier.toUpperCase() === tierName.toUpperCase());
+    if (sec && currentTierCount > sec.capacity) {
+      handleUpdateSectionCapacity(sec.id, currentTierCount);
+    }
 
     return newGuest;
   };
@@ -766,6 +778,7 @@ export default function App() {
             onToggleCheckIn={handleToggleCheckIn}
             onAssignSeat={handleAssignSeat}
             onUnassignSeat={handleUnassignSeat}
+            onUpdateSectionCapacity={handleUpdateSectionCapacity}
           />
         )}
 
@@ -779,6 +792,7 @@ export default function App() {
             separationRules={separationRules}
             onAssignSeat={handleAssignSeat}
             onUnassignSeat={handleUnassignSeat}
+            onUpdateSectionCapacity={handleUpdateSectionCapacity}
             warningLogs={warningLogs}
           />
         )}

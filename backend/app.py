@@ -372,6 +372,18 @@ def get_sections(event_id):
     conn.close()
     return [dict(s) for s in sections]
 
+@app.route('/api/sections/<int:section_id>/capacity', methods=['POST', 'PUT'])
+def update_section_capacity(section_id):
+    data = dict(request.form or request.values)
+    capacity = int(data.get('capacity', 10))
+
+    conn = get_db_connection()
+    conn.execute('UPDATE sections SET capacity = ? WHERE id = ?', (capacity, section_id))
+    conn.commit()
+    conn.close()
+    sync_scratch_db()
+    return {'success': True, 'id': section_id, 'capacity': capacity}
+
 # ==================== SEPARATION RULES CRUD ROUTES ====================
 @app.route('/api/rivals', methods=['GET'])
 def get_rivals():

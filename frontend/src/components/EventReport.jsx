@@ -52,10 +52,11 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
     };
   });
 
-  // 3. Physical Seating Protocol Alerts count
-  const protocolAlerts = warningLogs.filter(w => w.type === 'separation_alert' || w.type === 'brand_clash').length;
-  const tierMismatches = warningLogs.filter(w => w.type === 'tier_mismatch').length;
-  const capacityIssues = warningLogs.filter(w => w.type === 'capacity_full').length;
+  // 3. Physical Seating Protocol Alerts count (filtered strictly by selected event)
+  const eventWarnings = warningLogs.filter(w => Number(w.eventId || w.event_id) === Number(selectedEvent.id));
+  const protocolAlerts = eventWarnings.filter(w => w.type === 'separation_alert' || w.type === 'brand_clash').length;
+  const tierMismatches = eventWarnings.filter(w => w.type === 'tier_mismatch').length;
+  const capacityIssues = eventWarnings.filter(w => w.type === 'capacity_full').length;
 
   return (
     <div className="page-wrapper">
@@ -105,7 +106,7 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
           {/* Metric 3 */}
           <div className="oversized-metric-card">
             <div className="metric-number-massive">
-              {isPhysical ? warningLogs.length : checkedInGuests}
+              {isPhysical ? eventWarnings.length : checkedInGuests}
             </div>
             <div className="metric-label-gray">
               {isPhysical ? 'Seating Protocol Alerts' : 'Active Live Viewers'}
@@ -181,7 +182,7 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
 
             {isPhysical ? (
               /* Physical Conflict Warnings Table */
-              warningLogs.length === 0 ? (
+              eventWarnings.length === 0 ? (
                 <p style={{ color: '#7d7d7d', marginTop: '16px' }}>
                   No protocol alerts recorded. All seating rules were followed correctly.
                 </p>
@@ -195,7 +196,7 @@ export default function EventReport({ selectedEvent, guests = [], sections = [],
                       </tr>
                     </thead>
                     <tbody>
-                      {warningLogs.map((w, idx) => {
+                      {eventWarnings.map((w, idx) => {
                         const typeLabel =
                           (w.type === 'separation_alert' || w.type === 'brand_clash') ? 'Separation Protocol' :
                           w.type === 'tier_mismatch'    ? 'Tier Mismatch' :
