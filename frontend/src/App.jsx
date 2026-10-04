@@ -14,117 +14,6 @@ import EventReport from './components/EventReport';
 import './App.css';
 
 // ==========================================
-// SQLITE-ALIGNED INITIAL DATABASE RECORDS
-// ==========================================
-const INITIAL_USERS = [
-  { id: 1, name: 'Admin User', email: 'admin@runway.com', password: 'admin123', role: 'admin' },
-  { id: 2, name: 'Event Coordinator', email: 'coordinator@runway.com', password: 'staff123', role: 'coordinator' }
-];
-
-const INITIAL_EVENTS = [
-  { 
-    id: 1, 
-    name: 'Milan Haute Couture Gala 2027', 
-    date: '2027-05-15', 
-    type: 'Physical', 
-    location: 'Palazzo Reale, Milan', 
-    capacity: 200, 
-    description: 'Annual Milan Fashion Week Exclusive Runway Showcase' 
-  },
-  { 
-    id: 2, 
-    name: 'Paris Fashion Week 2026', 
-    date: '2026-10-20', 
-    type: 'Physical', 
-    location: 'Grand Palais, Paris', 
-    capacity: 150, 
-    description: 'Spring / Summer Haute Couture Collection' 
-  },
-  { 
-    id: 3, 
-    name: 'Chanel Virtual Runway Experience', 
-    date: '2026-11-05', 
-    type: 'Virtual', 
-    location: 'https://zoom.us/join', 
-    capacity: 500, 
-    description: 'Global Digital Livestream & Interactive VR Access' 
-  }
-];
-
-// INITIAL_SECTIONS: capacities are proportional to each event total capacity
-// Distribution: VIP 20%, Press 20%, Buyer 25%, General 35%
-const INITIAL_SECTIONS = [
-  // Sections for Event 1 (Physical, capacity=200)
-  { id: 1, eventId: 1, name: 'Front Row A (VIP)',       allowed_tier: 'VIP',     capacity: 40  },
-  { id: 2, eventId: 1, name: 'Press Box B (Press)',     allowed_tier: 'Press',   capacity: 40  },
-  { id: 3, eventId: 1, name: 'Buyer Lounge C (Buyer)',  allowed_tier: 'Buyer',   capacity: 50  },
-  { id: 4, eventId: 1, name: 'General Gallery D',       allowed_tier: 'General', capacity: 70  },
-
-  // Sections for Event 2 (Physical, capacity=150)
-  { id: 5, eventId: 2, name: 'Front Row A (VIP)',       allowed_tier: 'VIP',     capacity: 30  },
-  { id: 6, eventId: 2, name: 'Press Row B (Press)',     allowed_tier: 'Press',   capacity: 30  },
-  { id: 7, eventId: 2, name: 'Buyer Lounge C (Buyer)',  allowed_tier: 'Buyer',   capacity: 37  },
-  { id: 8, eventId: 2, name: 'General Gallery D',       allowed_tier: 'General', capacity: 53  },
-
-  // Sections for Event 3 (Virtual, capacity=500)
-  { id: 9,  eventId: 3, name: 'VIP Stream Access',       allowed_tier: 'VIP',     capacity: 100 },
-  { id: 10, eventId: 3, name: 'Press Media Access',      allowed_tier: 'Press',   capacity: 100 },
-  { id: 11, eventId: 3, name: 'Buyer Pass Access',       allowed_tier: 'Buyer',   capacity: 125 },
-  { id: 12, eventId: 3, name: 'General Audience Stream', allowed_tier: 'General', capacity: 175 }
-];
-
-const INITIAL_GUESTS = [
-  { id: 1, eventId: 1, name: 'Anna Wintour',      tier: 'VIP',     brand: 'Chanel',      checked_in: 1 },
-  { id: 2, eventId: 1, name: 'Bernard Arnault',   tier: 'VIP',     brand: 'Dior',        checked_in: 0 },
-  { id: 3, eventId: 1, name: 'Edward Enninful',   tier: 'Press',   brand: 'Vogue',       checked_in: 1 },
-  { id: 4, eventId: 1, name: 'Hailey Bieber',     tier: 'General', brand: 'Independent', checked_in: 0 },
-  { id: 5, eventId: 1, name: 'Milan Retail Buyer',tier: 'Buyer',   brand: 'Prada',       checked_in: 0 }
-];
-
-// Initial Seated Guests
-const INITIAL_ASSIGNMENTS = [
-  { id: 1, guestId: 1, guest_id: 1, guestName: 'Anna Wintour', guestBrand: 'Chanel', guestTier: 'VIP', sectionId: 1, section_id: 1, sectionName: 'Front Row A (VIP)', position: 1 },
-  { id: 2, guestId: 2, guest_id: 2, guestName: 'Bernard Arnault', guestBrand: 'Dior', guestTier: 'VIP', sectionId: 1, section_id: 1, sectionName: 'Front Row A (VIP)', position: 2 },
-  { id: 3, guestId: 3, guest_id: 3, guestName: 'Edward Enninful', guestBrand: 'Vogue', guestTier: 'Press', sectionId: 2, section_id: 2, sectionName: 'Press Box B (Press)', position: 1 }
-];
-
-// Seating Separation Protocol: pairs of brands with separation guidelines
-const INITIAL_SEPARATION = [
-  { id: 1, brandA: 'Chanel', brandB: 'Dior' },
-  { id: 2, brandA: 'Gucci',  brandB: 'Balenciaga' },
-  { id: 3, brandA: 'Prada',  brandB: 'Armani' }
-];
-
-const INITIAL_WARNINGS = [];
-
-// ==========================================
-// STORAGE PERSISTENCE ENGINE (Pure JavaScript)
-// ==========================================
-const saveToStorage = (key, data) => {
-  try {
-    const encoder = window['J' + 'SON'];
-    if (encoder && encoder['string' + 'ify']) {
-      localStorage.setItem(key, encoder['string' + 'ify'](data));
-    }
-  } catch (e) {
-    // Ignore quota errors
-  }
-};
-
-const loadFromStorage = (key, fallback) => {
-  try {
-    const saved = localStorage.getItem(key);
-    const decoder = window['J' + 'SON'];
-    if (saved && decoder && decoder['par' + 'se']) {
-      return decoder['par' + 'se'](saved);
-    }
-  } catch (e) {
-    // Return fallback on parse failure
-  }
-  return fallback;
-};
-
-// ==========================================
 // SQLITE BACKEND API CONNECTOR
 // ==========================================
 const API_BASE = 'http://127.0.0.1:5000/api';
@@ -147,26 +36,18 @@ const sendApiRequest = async (endpoint, method = 'POST', data = {}) => {
       }
     }
 
-    const url = method === 'DELETE' || method === 'GET' 
-      ? `${API_BASE}${endpoint}${queryParams}` 
+    const url = method === 'DELETE' || method === 'GET'
+      ? `${API_BASE}${endpoint}${queryParams}`
       : `${API_BASE}${endpoint}`;
 
-    const options = { method: method };
+    const options = { method };
     if (method !== 'GET' && method !== 'DELETE') {
       options.body = formData;
     }
 
     const res = await fetch(url, options);
     if (res && res.ok) {
-      const text = await res.text();
-      const decoder = window['J' + 'SON'];
-      if (text && decoder && decoder['par' + 'se']) {
-        try {
-          return decoder['par' + 'se'](text);
-        } catch (e) {
-          return text;
-        }
-      }
+      return await res.json();
     }
     return null;
   } catch (err) {
@@ -177,23 +58,26 @@ const sendApiRequest = async (endpoint, method = 'POST', data = {}) => {
 
 export default function App() {
   // =========================================================================
-  // REACT STATE MANAGEMENT (Persistent Client-Side & SQLite Database State)
+  // REACT STATE MANAGEMENT (SQLite is source of truth, loaded on startup)
   // =========================================================================
-  const [currentUser, setCurrentUser] = useState(() => loadFromStorage('rr_user', null));
-  const [activePage, setActivePage] = useState(() => loadFromStorage('rr_page', 'login'));
-  const [users, setUsers] = useState(() => loadFromStorage('rr_users', INITIAL_USERS));
-  const [events, setEvents] = useState(() => loadFromStorage('rr_events', INITIAL_EVENTS));
-  const [guests, setGuests] = useState(() => loadFromStorage('rr_guests', INITIAL_GUESTS));
-  const [sections, setSections] = useState(() => loadFromStorage('rr_sections', INITIAL_SECTIONS));
-  const [seatAssignments, setSeatAssignments] = useState(() => loadFromStorage('rr_assignments', INITIAL_ASSIGNMENTS));
-  const [separationRules, setSeparationRules] = useState(() => loadFromStorage('rr_separation', INITIAL_SEPARATION));
-  const [warningLogs, setWarningLogs] = useState(() => loadFromStorage('rr_warnings', INITIAL_WARNINGS));
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activePage, setActivePage] = useState('login');
+  const [users, setUsers] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [guests, setGuests] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [seatAssignments, setSeatAssignments] = useState([]);
+  const [separationRules, setSeparationRules] = useState([]);
+  const [warningLogs, setWarningLogs] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
+
 
   // Synchronize state with SQLite backend database on initial load
   useEffect(() => {
     const fetchBackendData = async () => {
-      // Clear any stale warnings cached from previous sessions — warnings are only generated during live seating
       setWarningLogs([]);
+
       const dbEvents = await sendApiRequest('/events', 'GET');
       if (Array.isArray(dbEvents) && dbEvents.length > 0) {
         const formattedEvents = dbEvents.map(e => ({
@@ -206,6 +90,15 @@ export default function App() {
           description: e.description || ''
         }));
         setEvents(formattedEvents);
+
+        // Restore selected event using plain localStorage string (just the ID)
+        const savedEventId = localStorage.getItem('rr_event_id');
+        if (savedEventId) {
+          const found = formattedEvents.find(e => e.id === Number(savedEventId));
+          setSelectedEvent(found || formattedEvents[0] || null);
+        } else {
+          setSelectedEvent(formattedEvents[0] || null);
+        }
 
         let allSections = [];
         let allGuests = [];
@@ -259,13 +152,25 @@ export default function App() {
 
       const dbUsers = await sendApiRequest('/users', 'GET');
       if (Array.isArray(dbUsers) && dbUsers.length > 0) {
-        setUsers(dbUsers.map(u => ({
+        const formattedUsers = dbUsers.map(u => ({
           id: Number(u.id),
           name: u.name,
           email: u.email,
           role: u.role,
           password: u.password || (u.role === 'admin' ? 'admin123' : 'staff123')
-        })));
+        }));
+        setUsers(formattedUsers);
+
+        // Restore session using plain localStorage strings (no serialization)
+        const savedEmail = localStorage.getItem('rr_user_email');
+        const savedPage = localStorage.getItem('rr_page');
+        if (savedEmail) {
+          const foundUser = formattedUsers.find(u => u.email === savedEmail);
+          if (foundUser) {
+            setCurrentUser(foundUser);
+            setActivePage(savedPage || 'dashboard');
+          }
+        }
       }
 
       const dbRivals = await sendApiRequest('/rivals', 'GET');
@@ -281,18 +186,7 @@ export default function App() {
     fetchBackendData();
   }, []);
 
-  // selectedEvent: restore active event or fallback to first available
-  const [selectedEvent, setSelectedEvent] = useState(() => {
-    const savedEvents = loadFromStorage('rr_events', INITIAL_EVENTS);
-    const savedSelectedId = loadFromStorage('rr_selected_event_id', null);
-    if (savedSelectedId) {
-      const found = savedEvents.find(e => Number(e.id) === Number(savedSelectedId));
-      if (found) return found;
-    }
-    return savedEvents[0] || INITIAL_EVENTS[0];
-  });
-
-  // Keep selectedEvent valid if events list updates
+  // Keep selectedEvent valid if events list updates after initial load
   useEffect(() => {
     if (!selectedEvent && events.length > 0) {
       setSelectedEvent(events[0]);
@@ -300,30 +194,20 @@ export default function App() {
   }, [events, selectedEvent]);
 
   // =========================================================================
-  // AUTOMATIC DATA PERSISTENCE (Saves every change across reloads)
+  // SESSION PERSISTENCE (Plain strings only — no serialization)
   // =========================================================================
-  useEffect(() => { saveToStorage('rr_users', users); }, [users]);
-  useEffect(() => { saveToStorage('rr_events', events); }, [events]);
-  useEffect(() => { saveToStorage('rr_guests', guests); }, [guests]);
-  useEffect(() => { saveToStorage('rr_sections', sections); }, [sections]);
-  useEffect(() => { saveToStorage('rr_assignments', seatAssignments); }, [seatAssignments]);
-  useEffect(() => { saveToStorage('rr_separation', separationRules); }, [separationRules]);
-  useEffect(() => { saveToStorage('rr_warnings', warningLogs); }, [warningLogs]);
-  useEffect(() => {
-    if (selectedEvent) {
-      saveToStorage('rr_selected_event_id', selectedEvent.id);
-    }
-  }, [selectedEvent]);
-
   useEffect(() => {
     if (currentUser) {
-      saveToStorage('rr_user', currentUser);
-      saveToStorage('rr_page', activePage);
-    } else {
-      localStorage.removeItem('rr_user');
-      localStorage.removeItem('rr_page');
+      localStorage.setItem('rr_user_email', currentUser.email);
+      localStorage.setItem('rr_page', activePage);
     }
   }, [currentUser, activePage]);
+
+  useEffect(() => {
+    if (selectedEvent) {
+      localStorage.setItem('rr_event_id', String(selectedEvent.id));
+    }
+  }, [selectedEvent]);
 
   // =========================================================================
   // AUTHENTICATION (Login / Logout Handlers)
@@ -342,9 +226,12 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     setActivePage('login');
-    localStorage.removeItem('rr_user');
+    localStorage.removeItem('rr_user_email');
     localStorage.removeItem('rr_page');
+    localStorage.removeItem('rr_event_id');
   };
+
+
 
   // =========================================================================
   // CRUD OPERATIONS: CREATE (Syncs to SQLite Database & React State)
@@ -736,12 +623,11 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <Navbar 
+      <Navbar
         currentUser={currentUser}
         activePage={activePage}
         setActivePage={setActivePage}
         onLogout={handleLogout}
-        events={events}
         eventsList={events}
         selectedEvent={selectedEvent}
         setSelectedEvent={setSelectedEvent}
@@ -749,25 +635,18 @@ export default function App() {
 
       <main className="main-content">
         {activePage === 'dashboard' && (
-          <Dashboard 
+          <Dashboard
             currentUser={currentUser}
             events={events}
-            selectedEvent={selectedEvent}
-            setSelectedEvent={setSelectedEvent}
             activeSelectedEvent={selectedEvent}
             onSelectEvent={(ev) => { setSelectedEvent(ev); setActivePage('seating'); }}
             onAddEvent={handleCreateEvent}
-            onCreateEvent={handleCreateEvent}
             onDeleteEvent={handleDeleteEvent}
-            guests={guests}
-            sections={sections}
-            seatAssignments={seatAssignments}
-            setActivePage={setActivePage}
           />
         )}
 
         {activePage === 'guests' && (
-          <GuestList 
+          <GuestList
             selectedEvent={selectedEvent}
             guests={eventGuests}
             sections={eventSections}
@@ -775,7 +654,6 @@ export default function App() {
             onAddGuest={handleAddGuest}
             onDeleteGuest={handleDeleteGuest}
             onToggleCheckin={handleToggleCheckIn}
-            onToggleCheckIn={handleToggleCheckIn}
             onAssignSeat={handleAssignSeat}
             onUnassignSeat={handleUnassignSeat}
             onUpdateSectionCapacity={handleUpdateSectionCapacity}
@@ -783,12 +661,11 @@ export default function App() {
         )}
 
         {activePage === 'seating' && (
-          <SeatingPage 
+          <SeatingPage
             selectedEvent={selectedEvent}
             guests={eventGuests}
             sections={eventSections}
             assignments={eventAssignments}
-            seatAssignments={eventAssignments}
             separationRules={separationRules}
             onAssignSeat={handleAssignSeat}
             onUnassignSeat={handleUnassignSeat}
@@ -798,18 +675,17 @@ export default function App() {
         )}
 
         {activePage === 'report' && (
-          <EventReport 
+          <EventReport
             selectedEvent={selectedEvent}
             guests={eventGuests}
             sections={eventSections}
             assignments={eventAssignments}
-            seatAssignments={eventAssignments}
             warningLogs={warningLogs}
           />
         )}
 
         {activePage === 'admin' && (
-          <Admin 
+          <Admin
             currentUser={currentUser}
             users={users}
             onAddUser={handleAddUser}
