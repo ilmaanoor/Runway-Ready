@@ -5,8 +5,6 @@ import editorPortraitImg from '../assets/fashion_editor_portrait.png';
 
 export default function SeatingPage({ selectedEvent, guests, sections, assignments, separationRules = [], onAssignSeat, onUnassignSeat, onUpdateSectionCapacity }) {
   const [selectedGuestId, setSelectedGuestId] = useState(null);
-  const [selectedSectionId, setSelectedSectionId] = useState('');
-  const [selectedPosition, setSelectedPosition] = useState(1);
   const [warnings, setWarnings] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -190,8 +188,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                     key={g.id} 
                     className={`unassigned-guest-item ${selectedGuestId === g.id ? 'selected' : ''}`}
                     onClick={() => { 
-                      setSelectedGuestId(g.id); 
-                      setSelectedSectionId(''); 
+                      setSelectedGuestId(prev => prev === g.id ? null : g.id); 
                       setErrorMessage(''); 
                       setWarnings([]); 
                     }}
@@ -204,57 +201,6 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                 ))
               )}
             </div>
-
-            {/* Sidebar Assignment Form */}
-            {selectedGuestId && (() => {
-              const selectedGuest = guests.find(g => Number(g.id) === Number(selectedGuestId));
-              const guestTierUpper = selectedGuest ? (selectedGuest.tier || '').toUpperCase() : '';
-              const allowedSections = sections.filter(s => 
-                (s.allowed_tier || '').toUpperCase() === guestTierUpper || 
-                (s.allowed_tier || '').toUpperCase() === 'GENERAL'
-              );
-              return (
-                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eaeaea' }}>
-                  <span className="sidebar-title">Assign Selected Guest</span>
-                  {selectedGuest && (
-                    <p style={{ fontSize: '0.78rem', color: '#555', marginTop: '6px', marginBottom: '4px' }}>
-                      Only <strong>{selectedGuest.tier}</strong> sections are shown for this guest.
-                    </p>
-                  )}
-                  <div className="form-group-editorial" style={{ marginTop: '8px' }}>
-                    <label>Section ({selectedGuest ? selectedGuest.tier : ''} only)</label>
-                    <select 
-                      className="input-editorial" 
-                      value={selectedSectionId}
-                      onChange={e => setSelectedSectionId(e.target.value)}
-                    >
-                      <option value="">-- Choose Section --</option>
-                      {allowedSections.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group-editorial">
-                    <label>Seat #</label>
-                    <input 
-                      type="number" 
-                      className="input-editorial" 
-                      value={selectedPosition} 
-                      onChange={e => setSelectedPosition(e.target.value)}
-                      min="1"
-                      max="100"
-                    />
-                  </div>
-                  <button 
-                    className="btn-couture btn-primary-couture" 
-                    style={{ width: '100%' }}
-                    onClick={() => handleAssign(selectedGuestId, selectedSectionId, selectedPosition)}
-                  >
-                    Assign Seat
-                  </button>
-                </div>
-              );
-            })()}
 
             {/* Small Portrait Card in Sidebar */}
             <div className="editorial-frame-card" style={{ marginTop: '24px' }}>
