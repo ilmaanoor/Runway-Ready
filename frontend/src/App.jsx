@@ -459,7 +459,7 @@ export default function App() {
     if (!guest || !section) return { success: false, error: 'Guest or Section not found' };
 
     // Validate tier match
-    if (section.allowed_tier !== 'General' && section.allowed_tier !== guest.tier) {
+    if (section.allowed_tier && section.allowed_tier.toUpperCase() !== 'GENERAL' && section.allowed_tier.toUpperCase() !== (guest.tier || '').toUpperCase()) {
       const msg = `Tier Mismatch: ${guest.name} (${guest.tier}) cannot be seated in ${section.name} (Requires ${section.allowed_tier})`;
       setWarningLogs(prev => [{
         id: Date.now(),

@@ -441,7 +441,9 @@ def assign_seat():
     warnings = []
 
     # 1. Tier compatibility validation
-    if section['allowed_tier'] != 'General' and section['allowed_tier'] != guest['tier']:
+    sec_tier = (section['allowed_tier'] or '').strip().upper()
+    gst_tier = (guest['tier'] or '').strip().upper()
+    if sec_tier != 'GENERAL' and sec_tier != gst_tier:
         err_msg = f"Tier Mismatch: {guest['name']} ({guest['tier']}) cannot sit in {section['name']} ({section['allowed_tier']})"
         cursor.execute('INSERT INTO warning_log (event_id, guest_id, type, message) VALUES (?, ?, ?, ?)',
                        (event_id, guest_id, 'tier_mismatch', err_msg))

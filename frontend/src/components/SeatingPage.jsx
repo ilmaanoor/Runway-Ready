@@ -23,7 +23,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
   }
 
   const isPhysical = selectedEvent.type === 'Physical';
-  const unassignedGuests = guests.filter(g => !assignments.some(a => a.guestId === g.id));
+  const unassignedGuests = guests.filter(g => !assignments.some(a => Number(a.guestId || a.guest_id) === Number(g.id)));
 
   // Dynamic Credential Extractor from user's URL
   const extractZoomDetails = (rawLoc) => {
@@ -93,13 +93,20 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
 
   // Handle Seat / Pass Assignment using Pure React State Function
   const handleAssign = (guestId, sectionId, position) => {
-    if (!guestId || !sectionId) return;
+    if (!guestId || !sectionId) {
+      setErrorMessage('No matching section found for this guest tier. Please check sections are loaded.');
+      return;
+    }
 
     setWarnings([]);
     setSuccessMessage('');
     setErrorMessage('');
 
     const res = onAssignSeat(guestId, sectionId, position);
+    if (!res) {
+      setErrorMessage('Assignment failed — please ensure the backend is running.');
+      return;
+    }
     if (res.success) {
       setSuccessMessage(res.message);
       if (res.warnings && res.warnings.length > 0 && isPhysical) {
@@ -107,7 +114,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
       }
       setSelectedGuestId(null);
     } else {
-      setErrorMessage(res.error);
+      setErrorMessage(res.error || 'Assignment failed.');
     }
   };
 
@@ -396,9 +403,16 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                   <p style={{ fontSize: '0.8rem', color: '#7d7d7d' }}>All guests hold active digital passes!</p>
                 ) : (
                   unassignedGuests.map(g => {
-                    const matchingSec = sections.find(s => s.allowed_tier === g.tier);
-                    const secAssignments = matchingSec ? assignments.filter(a => a.sectionId === matchingSec.id) : [];
-                    const nextPos = secAssignments.length + 1;
+                    const guestTierUpper = (g.tier || '').toUpperCase();
+                    const matchingSec = sections.find(s => (s.allowed_tier || '').toUpperCase() === guestTierUpper)
+                                     || sections.find(s => (s.allowed_tier || '').toUpperCase() === 'GENERAL')
+                                     || sections[0];
+                    const secAssignments = matchingSec ? assignments.filter(a => Number(a.sectionId || a.section_id) === Number(matchingSec.id)) : [];
+                    const usedPositions = new Set(secAssignments.map(a => Number(a.position)));
+                    let nextPos = 1;
+                    while (usedPositions.has(nextPos)) {
+                      nextPos++;
+                    }
 
                     return (
                       <div 
@@ -416,11 +430,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                         <button 
                           className="btn-couture btn-secondary-couture"
                           style={{ fontSize: '0.7rem', padding: '4px 8px' }}
-                          onClick={() => {
-                            if (matchingSec) {
-                              handleAssign(g.id, matchingSec.id, nextPos);
-                            }
-                          }}
+                          onClick={() => handleAssign(g.id, matchingSec ? matchingSec.id : null, nextPos)}
                         >
                           + Issue Pass
                         </button>
@@ -435,11 +445,14 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
             <div style={{ flex: 1 }}>
               <div className="virtual-four-grid">
                 {sections.map(sec => {
-                  const secAssignments = assignments.filter(a => a.sectionId === sec.id);
-                  const tierGuestCount = guests.filter(g => g.tier && g.tier.toUpperCase() === sec.allowed_tier.toUpperCase()).length;
+                  const secAssignments = assignments.filter(a => Number(a.sectionId || a.section_id) === Number(sec.id));
+                  const tierGuestCount = guests.filter(g => g.tier && g.tier.toUpperCase() === (sec.allowed_tier || '').toUpperCase()).length;
                   const effectiveCapacity = Math.max(sec.capacity, tierGuestCount);
                   const capacityPct = effectiveCapacity > 0 ? Math.round((secAssignments.length / effectiveCapacity) * 100) : 0;
-                  const matchingUnassigned = unassignedGuests.filter(g => g.tier === sec.allowed_tier);
+                  const matchingUnassigned = unassignedGuests.filter(g => 
+                    (g.tier || '').toUpperCase() === (sec.allowed_tier || '').toUpperCase() || 
+                    (sec.allowed_tier || '').toUpperCase() === 'GENERAL'
+                  );
 
                   return (
                     <div key={sec.id} className="virtual-column-card">
@@ -475,7 +488,12 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                             className="btn-couture btn-primary-couture"
                             style={{ fontSize: '0.68rem', padding: '3px 8px' }}
                             onClick={() => {
-                              handleAssign(matchingUnassigned[0].id, sec.id, secAssignments.length + 1);
+                              const usedPositions = new Set(secAssignments.map(a => Number(a.position)));
+                              let nextPos = 1;
+                              while (usedPositions.has(nextPos)) {
+                                nextPos++;
+                              }
+                              handleAssign(matchingUnassigned[0].id, sec.id, nextPos);
                             }}
                           >
                             + Issue Next Pass
