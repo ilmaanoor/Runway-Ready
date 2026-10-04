@@ -77,13 +77,14 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
     const brandLower = assignedGuestBrand.trim().toLowerCase();
 
     const adjacent = assignments.filter(a =>
-      a.sectionId === sectionId &&
-      (a.position === position - 1 || a.position === position + 1)
+      Number(a.sectionId || a.section_id) === Number(sectionId) &&
+      (Number(a.position) === Number(position) - 1 || Number(a.position) === Number(position) + 1)
     );
 
     return adjacent.some(adj => {
-      if (!adj.guestBrand) return false;
-      const adjBrandLower = adj.guestBrand.trim().toLowerCase();
+      const b = adj.guestBrand || adj.guest_brand;
+      if (!b) return false;
+      const adjBrandLower = b.trim().toLowerCase();
       return separationRules.some(r =>
         (r.brandA.toLowerCase() === brandLower && r.brandB.toLowerCase() === adjBrandLower) ||
         (r.brandB.toLowerCase() === brandLower && r.brandA.toLowerCase() === adjBrandLower)
@@ -206,8 +207,12 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
 
             {/* Sidebar Assignment Form */}
             {selectedGuestId && (() => {
-              const selectedGuest = guests.find(g => g.id === selectedGuestId);
-              const allowedSections = sections.filter(s => s.allowed_tier === (selectedGuest ? selectedGuest.tier : ''));
+              const selectedGuest = guests.find(g => Number(g.id) === Number(selectedGuestId));
+              const guestTierUpper = selectedGuest ? (selectedGuest.tier || '').toUpperCase() : '';
+              const allowedSections = sections.filter(s => 
+                (s.allowed_tier || '').toUpperCase() === guestTierUpper || 
+                (s.allowed_tier || '').toUpperCase() === 'GENERAL'
+              );
               return (
                 <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eaeaea' }}>
                   <span className="sidebar-title">Assign Selected Guest</span>
@@ -272,8 +277,8 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
 
             {/* Parallel Seat Blocks Grouped by Section */}
             {sections.map(sec => {
-              const secAssignments = assignments.filter(a => a.sectionId === sec.id);
-              const tierGuestCount = guests.filter(g => g.tier && g.tier.toUpperCase() === sec.allowed_tier.toUpperCase()).length;
+              const secAssignments = assignments.filter(a => Number(a.sectionId || a.section_id) === Number(sec.id));
+              const tierGuestCount = guests.filter(g => g.tier && g.tier.toUpperCase() === (sec.allowed_tier || '').toUpperCase()).length;
               const effectiveCapacity = Math.max(sec.capacity, tierGuestCount);
               return (
                 <div key={sec.id} className="seat-row-block">
@@ -298,8 +303,8 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                   </div>
                   <div className="seat-grid-parallel">
                     {Array.from({ length: effectiveCapacity }, (_, i) => i + 1).map(pos => {
-                      const assigned = secAssignments.find(a => a.position === pos);
-                      const isConflict = assigned && isSeatInConflict(sec.id, pos, assigned.guestBrand);
+                      const assigned = secAssignments.find(a => Number(a.position) === Number(pos));
+                      const isConflict = assigned && isSeatInConflict(sec.id, pos, assigned.guestBrand || assigned.guest_brand);
 
                       return (
                         <div 
@@ -313,9 +318,12 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                           }
                           onClick={() => {
                             if (assigned) {
-                              onUnassignSeat(assigned.guestId);
+                              onUnassignSeat(assigned.guestId || assigned.guest_id);
                             } else {
-                              const matchingUnassigned = unassignedGuests.filter(g => g.tier === sec.allowed_tier);
+                              const matchingUnassigned = unassignedGuests.filter(g => 
+                                (g.tier || '').toUpperCase() === (sec.allowed_tier || '').toUpperCase() || 
+                                (sec.allowed_tier || '').toUpperCase() === 'GENERAL'
+                              );
                               const guestToAssign = selectedGuestId || (matchingUnassigned[0] ? matchingUnassigned[0].id : null);
                               
                               if (guestToAssign) {
@@ -332,8 +340,8 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                           </div>
                           {assigned ? (
                             <div>
-                              <div className="seat-guest-name-text">{assigned.guestName}</div>
-                              <div className="seat-guest-brand-text">{assigned.guestBrand || 'INDEPENDENT'}</div>
+                              <div className="seat-guest-name-text">{assigned.guestName || assigned.guest_name}</div>
+                              <div className="seat-guest-brand-text">{assigned.guestBrand || assigned.guest_brand || 'INDEPENDENT'}</div>
                             </div>
                           ) : (
                             <span style={{ color: '#000', fontWeight: 'bold', fontSize: '0.75rem' }}>+ Vacant</span>
@@ -345,6 +353,7 @@ export default function SeatingPage({ selectedEvent, guests, sections, assignmen
                 </div>
               );
             })}
+
           </div>
         </div>
       ) : (
