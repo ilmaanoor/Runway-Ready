@@ -10,10 +10,18 @@ export default function PhysicalSeating({ selectedEvent, guests, sections, assig
   const isConflict = (secId, pos, brand) => {
     if (!brand || !separationRules?.length) return false;
     const b = brand.trim().toLowerCase();
-    const adj = assignments.filter(a => Number(a.sectionId || a.section_id) === Number(secId) && (Number(a.position) === pos - 1 || Number(a.position) === pos + 1));
+    const adj = assignments.filter(a => 
+      Number(a.sectionId || a.section_id) === Number(secId) && 
+      (Number(a.position) === pos - 1 || Number(a.position) === pos + 1)
+    );
     return adj.some(a => {
       const ab = (a.guestBrand || a.guest_brand || '').trim().toLowerCase();
-      return separationRules.some(r => (r.brandA?.toLowerCase() === b && r.brandB?.toLowerCase() === ab) || (r.brandB?.toLowerCase() === b && r.brandA?.toLowerCase() === ab));
+      if (!ab) return false;
+      return separationRules.some(r => {
+        const rA = (r.brandA || r.brand_a || '').trim().toLowerCase();
+        const rB = (r.brandB || r.brand_b || '').trim().toLowerCase();
+        return (rA === b && rB === ab) || (rB === b && rA === ab);
+      });
     });
   };
 
