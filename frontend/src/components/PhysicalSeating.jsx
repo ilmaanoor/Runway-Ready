@@ -1,4 +1,4 @@
-// PhysicalSeating.jsx — Runway Catwalk Grid & Adjacent Brand Conflict Check (<90 lines)
+// PhysicalSeating.jsx — Runway Catwalk Grid & Adjacent Brand Conflict Check
 import React, { useState } from 'react';
 import runwayBanner from '../assets/runway_show_banner.png';
 import editorPortrait from '../assets/fashion_editor_portrait.png';

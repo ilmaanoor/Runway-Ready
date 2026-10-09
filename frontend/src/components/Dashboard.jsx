@@ -13,16 +13,19 @@ export default function Dashboard({ currentUser, events, onAddEvent, onDeleteEve
   const [description, setDescription] = useState('');
   const [msg, setMsg] = useState('');
 
+  const today = new Date().toISOString().split('T')[0];
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name || !date) return;
+    const validCapacity = Math.max(1, parseInt(capacity) || 100);
     onAddEvent({
       name, date, type, 
       location: location.trim() || (type === 'Virtual' ? 'https://zoom.us/test' : 'Grand Palais, Paris'),
-      capacity: parseInt(capacity) || 100,
+      capacity: validCapacity,
       description: description || 'Runway Showcase'
     });
-    setName(''); setDate(''); setLocation(''); setDescription('');
+    setName(''); setDate(''); setLocation(''); setDescription(''); setCapacity('100');
     setMsg(`Event "${name}" created successfully!`);
     setTimeout(() => setMsg(''), 3000);
   };
@@ -49,10 +52,10 @@ export default function Dashboard({ currentUser, events, onAddEvent, onDeleteEve
             <div className="card-header-couture"><h3>Create New Event</h3><p>Set up physical runway or virtual stream</p></div>
             <form onSubmit={handleSubmit} className="form-stack">
               <div className="form-group-editorial"><label>Event Name</label><input type="text" className="input-editorial" placeholder="e.g. Milan Gala 2027" value={name} onChange={e => setName(e.target.value)} required /></div>
-              <div className="form-group-editorial"><label>Event Date</label><input type="date" className="input-editorial" value={date} onChange={e => setDate(e.target.value)} required /></div>
+              <div className="form-group-editorial"><label>Event Date</label><input type="date" min={today} className="input-editorial" value={date} onChange={e => setDate(e.target.value)} required /></div>
               <div className="form-group-editorial"><label>Format</label><select className="input-editorial" value={type} onChange={e => setType(e.target.value)}><option value="Physical">Physical (Runway)</option><option value="Virtual">Virtual (Zoom Stream)</option></select></div>
               <div className="form-group-editorial"><label>{type === 'Virtual' ? 'Livestream Link' : 'Venue Location'}</label><input type="text" className="input-editorial" placeholder={type === 'Virtual' ? 'https://zoom.us/test' : 'Grand Palais, Paris'} value={location} onChange={e => setLocation(e.target.value)} /></div>
-              <div className="form-group-editorial"><label>Max Capacity</label><input type="number" className="input-editorial" value={capacity} onChange={e => setCapacity(e.target.value)} /></div>
+              <div className="form-group-editorial"><label>Max Capacity</label><input type="number" min="1" className="input-editorial" value={capacity} onChange={e => setCapacity(e.target.value.replace(/[^0-9]/g, ''))} required /></div>
               <div className="form-group-editorial"><label>Theme / Description</label><input type="text" className="input-editorial" placeholder="e.g. Haute Couture Showcase" value={description} onChange={e => setDescription(e.target.value)} /></div>
               <button type="submit" className="btn-couture btn-primary-couture">+ Create Event</button>
             </form>

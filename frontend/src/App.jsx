@@ -1,4 +1,4 @@
-// App.jsx — Simple Root Component with Pure React State & Hooks (<90 lines)
+// App.jsx — Simple Root Component with Pure React State & Hooks 
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Login from './components/Login';

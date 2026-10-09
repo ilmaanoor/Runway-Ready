@@ -1,4 +1,4 @@
-// GuestList.jsx — Pure React Guest Management with CRUD (<90 lines)
+// GuestList.jsx — Pure React Guest Management with CRUD
 import React, { useState } from 'react';
 import modestCoutureImg from '../assets/modest_couture_brand.png';
 

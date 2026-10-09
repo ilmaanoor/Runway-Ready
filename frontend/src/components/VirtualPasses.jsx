@@ -1,4 +1,4 @@
-// VirtualPasses.jsx — Digital Stream Passes & Zoom Credential Portal (<90 lines)
+// VirtualPasses.jsx — Digital Stream Passes & Zoom Credential Portal
 import React, { useState } from 'react';
 
 export default function VirtualPasses({ selectedEvent, guests, sections, assignments, onAssignSeat, onUnassignSeat }) {

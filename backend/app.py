@@ -1,4 +1,4 @@
-# app.py — Simple Flask REST API Server for SQLite Database (<95 lines)
+# app.py — Simple Flask REST API Server for SQLite Database
 from flask import Flask, request
 from db import get_db, init_db
 
