@@ -37,7 +37,7 @@ export default function Admin({ users = [], separationRules = [], onAddUser, onD
         <p className="page-description">Manage staff accounts and brand separation protocols</p>
       </div>
 
-      {msg && <div style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981', color: '#065f46', padding: '10px', marginBottom: '14px', fontWeight: 'bold' }}>✓ {msg}</div>}
+      {msg && <div style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981', color: '#065f46', padding: '10px', marginBottom: '14px', fontWeight: 'bold' }}>{msg}</div>}
 
       <div className="editorial-frame-card banner-fashion" style={{ marginBottom: '20px' }}>
         <img src={adminRunwayBanner} alt="Runway" className="admin-banner-img" />

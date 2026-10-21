@@ -20,11 +20,11 @@ export default function VirtualPasses({ selectedEvent, guests, sections, assignm
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div className="virtual-stream-banner-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <span className="live-stream-badge">🎥 LIVE ZOOM WEBINAR</span>
+          <span className="live-stream-badge">LIVE ZOOM WEBINAR</span>
           <h2 style={{ fontFamily: 'Playfair Display, serif', margin: '6px 0' }}>{selectedEvent.name} — Virtual Portal</h2>
           <p style={{ fontSize: '0.82rem', margin: 0 }}>Join Link: <strong style={{ color: '#38bdf8' }}>{selectedEvent.location || 'https://zoom.us/test'}</strong></p>
         </div>
-        <a href={selectedEvent.location || 'https://zoom.us/test'} target="_blank" rel="noreferrer" className="btn-couture btn-primary-couture" style={{ background: '#fff', color: '#000', textDecoration: 'none' }}>🎥 Join Meeting ↗</a>
+        <a href={selectedEvent.location || 'https://zoom.us/test'} target="_blank" rel="noreferrer" className="btn-couture btn-primary-couture" style={{ background: '#fff', color: '#000', textDecoration: 'none' }}>Join Meeting</a>
       </div>
 
       <div className="seating-split-layout">
@@ -61,7 +61,7 @@ export default function VirtualPasses({ selectedEvent, guests, sections, assignm
                       <div key={a.id} className="virtual-guest-row">
                         <div><div className="guest-name-bold">{a.guestName || a.guest_name}</div><div style={{ fontSize: '0.7rem', color: '#666' }}>{a.guestBrand || 'INDEPENDENT'} • <span style={{ color: '#059669' }}>PASS #{a.id}</span></div></div>
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          <button className="btn-couture" style={{ fontSize: '0.68rem', padding: '3px 6px' }} onClick={() => copyInvite(a.guestId || a.guest_id, a.guestName || a.guest_name, a.guestBrand || a.guest_brand, sec.name, a.id)}>{copiedId === (a.guestId || a.guest_id) ? '✓ Copied' : '📋 Copy'}</button>
+                          <button className="btn-couture" style={{ fontSize: '0.68rem', padding: '3px 6px' }} onClick={() => copyInvite(a.guestId || a.guest_id, a.guestName || a.guest_name, a.guestBrand || a.guest_brand, sec.name, a.id)}>{copiedId === (a.guestId || a.guest_id) ? 'Copied' : 'Copy'}</button>
                           <button className="btn-delete-minimal" onClick={() => onUnassignSeat(a.guestId || a.guest_id)}>Revoke</button>
                         </div>
                       </div>

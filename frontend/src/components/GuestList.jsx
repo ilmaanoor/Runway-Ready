@@ -62,7 +62,7 @@ export default function GuestList({ selectedEvent, guests, onAddGuest, onDeleteG
                     <tr key={g.id} style={{ opacity: fadeCheckedIn && g.checked_in ? 0.35 : 1 }}>
                       <td><span className="guest-name-bold">{g.name}</span><span className="guest-brand-uppercase">{g.brand ? g.brand.toUpperCase() : 'INDEPENDENT'}</span></td>
                       <td><span className={`tier-pill-minimal ${g.tier.toLowerCase()}`}>{g.tier}</span></td>
-                      <td><button className={g.checked_in ? 'btn-checkin-green' : 'btn-checkin-pending'} onClick={() => onToggleCheckin(g.id)}>{g.checked_in ? '✓ Checked In' : 'Pending Check-In'}</button></td>
+                      <td><button className={g.checked_in ? 'btn-checkin-green' : 'btn-checkin-pending'} onClick={() => onToggleCheckin(g.id)}>{g.checked_in ? 'Checked In' : 'Pending Check-In'}</button></td>
                       <td><button className="btn-delete-minimal" onClick={() => onDeleteGuest(g.id)}>Remove</button></td>
                     </tr>
                   ))}

@@ -71,7 +71,7 @@ export default function PhysicalSeating({ selectedEvent, guests, sections, assig
                         else alert(`No unassigned ${sec.allowed_tier} guests available!`);
                       }
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="seat-num-tag">Seat {pos}</span>{clash && <span className="seat-conflict-indicator">⚠️ CONFLICT</span>}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="seat-num-tag">Seat {pos}</span>{clash && <span className="seat-conflict-indicator">CONFLICT</span>}</div>
                       {a ? <div><div className="seat-guest-name-text">{a.guestName || a.guest_name}</div><div className="seat-guest-brand-text">{a.guestBrand || a.guest_brand || 'INDEPENDENT'}</div></div> : <span style={{ fontWeight: 'bold', fontSize: '0.75rem' }}>+ Vacant</span>}
                     </div>
                   );

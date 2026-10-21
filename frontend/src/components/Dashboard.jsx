@@ -38,7 +38,7 @@ export default function Dashboard({ currentUser, events, onAddEvent, onDeleteEve
         <p className="page-description">Manage fashion shows, seating rosters, and virtual access</p>
       </div>
 
-      {msg && <div style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981', color: '#065f46', padding: '10px 14px', marginBottom: '14px', fontWeight: 'bold' }}>✓ {msg}</div>}
+      {msg && <div style={{ background: '#f0fdf4', borderLeft: '4px solid #10b981', color: '#065f46', padding: '10px 14px', marginBottom: '14px', fontWeight: 'bold' }}>{msg}</div>}
 
       <div className="dashboard-gallery-row">
         <div className="editorial-frame-card"><img src={fashionCollageImg} alt="Trends" className="editorial-thumbnail" /></div>
@@ -76,7 +76,7 @@ export default function Dashboard({ currentUser, events, onAddEvent, onDeleteEve
                   <div key={ev.id} className={`event-card-couture ${isSelected ? 'selected-event' : ''}`}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className={`tier-pill-minimal ${ev.type === 'Physical' ? 'vip' : 'general'}`}>{ev.type}</span><span style={{ fontSize: '0.8rem', color: '#777' }}>{ev.date}</span></div>
                     <h4 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.15rem', margin: '8px 0' }}>{ev.name}</h4>
-                    <p style={{ fontSize: '0.8rem', color: '#555' }}>📍 {ev.location || 'Paris'} | 👥 {ev.capacity} Guests</p>
+                    <p style={{ fontSize: '0.8rem', color: '#555' }}>{ev.location || 'Paris'} | {ev.capacity} Guests</p>
                     <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                       <button className={`btn-couture ${isSelected ? 'btn-primary-couture' : 'btn-secondary-couture'}`} style={{ flex: 1 }} onClick={() => onSelectEvent(ev)}>{isSelected ? 'Selected' : 'Select'}</button>
                       <button className="btn-delete-minimal" onClick={() => { if (window.confirm(`Delete "${ev.name}"?`)) onDeleteEvent(ev.id); }}>Delete</button>
